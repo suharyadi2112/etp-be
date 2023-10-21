@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Auth\AuthenticationException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -37,4 +38,29 @@ class Handler extends ExceptionHandler
             //
         });
     }
+
+    protected function unauthenticated($request, AuthenticationException $exception)
+    {
+      
+        return response()->json([
+            "status" => "fail",
+            "message" => "Unauthorized. You do not have access.",
+            "data" => null
+        ], 401);
+    }
+
+    protected function can($request, Closure $next, ...$permissions)
+    {
+        try {
+            // Check if the user has any of the specified permissions.
+            $this->authorizeAny($permissions);
+        } catch (AuthorizationException $e) {
+            // Customize the response when authorization fails.
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        return $next($request);
+    }
+
+    
 }

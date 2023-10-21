@@ -175,6 +175,13 @@ return [
     App\Providers\EventServiceProvider::class,
     App\Providers\RouteServiceProvider::class,
     App\Providers\MenuServiceProvider::class,
+
+    //laravel passport
+    Laravel\Passport\PassportServiceProvider::class,
+    //spatie permission 
+    Spatie\Permission\PermissionServiceProvider::class,
+    //yajra
+    Yajra\DataTables\DataTablesServiceProvider::class,
   ],
 
   /*
