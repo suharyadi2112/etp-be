@@ -7,15 +7,29 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Auth;
 use Yajra\Datatables\Datatables;
 use Spatie\Permission\Models\Role;
 use App\Helpers\Helper as GLog;
+
+//spatie
+use Spatie\Permission\Models\Permission;
 
 //model
 use App\Models\User;
 
 class ManageRoles extends Controller
 {
+
+    private $useCache;
+    private $filteredPermissions;
+
+    public function __construct()
+    {
+        $this->useCache = env('USE_CACHE_REDIS', true); //setup redis
+    }
+
     public function StoreRoles(Request $request){
 
         DB::beginTransaction();
@@ -48,13 +62,29 @@ class ManageRoles extends Controller
     }
 
     public function GetRoles(Request $request){
-
+        
         try {
-            $data = DataTables::of(Role::all())
-                ->addIndexColumn()
-                ->make(true);
+
+            $data = false;
+            if ($this->useCache) {
+                $data = json_decode(Redis::get('get_all_roles'),false);
+            }
+                
+            if (!$data || !$this->useCache) {
+                $data = Role::all();
+                if ($this->useCache) {
+                    Redis::setex('get_all_roles', 3600, $data);
+                }
+            }
+            
+            $resData = DataTables::of($data)->addIndexColumn()->make(true);
+            $jsonData = $resData->getData();
+
+            $permissionsData = Auth::user()->getAllPermissions()->map->only('id', 'name');
+            $jsonData->permissions = $permissionsData; //letak permission di api
+
             GLog::AddLog('success get all roles', "", ""); 
-            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $data], 200);
+            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $jsonData], 200);
         } catch (\Exception $e) {
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> "Server Error","data" => $e->getMessage()], 500);
