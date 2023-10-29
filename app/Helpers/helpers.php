@@ -7,6 +7,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use App\Models\LogActivity as LogActivityModel;
 
+use App\Jobs\LogJob as LJ;//job log
+
 class Helper
 {
 
@@ -23,7 +25,6 @@ class Helper
     $log['data'] = $data;
     $log['created_at'] = date('Y-m-d H:i:s');
     $log['updated_at'] = date('Y-m-d H:i:s');
-    LogActivityModel::create($log);
 
     if ($specification) {//false, log tidak tampil di cmd
       switch ($specification) {
@@ -48,6 +49,7 @@ class Helper
           break;
       }
     }
+    dispatch(new LJ($log));
   }
 
 

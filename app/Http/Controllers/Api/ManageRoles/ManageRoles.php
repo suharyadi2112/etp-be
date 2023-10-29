@@ -23,11 +23,13 @@ class ManageRoles extends Controller
 {
 
     private $useCache;
-    private $filteredPermissions;
+    private $useExp;
 
     public function __construct()
     {
-        $this->useCache = env('USE_CACHE_REDIS', true); //setup redis
+        $this->useCache = env('USE_CACHE_REDIS', false); //setup redis
+        $this->useExp = env('USE_EXPIRED', 3600); //setup redis
+        $this->jobLog = env('JOBLOG', false); //setup job log
     }
 
     public function StoreRoles(Request $request){
@@ -45,6 +47,10 @@ class ManageRoles extends Controller
 
         try {
             $cekInsert = Role::create(['name' => strtolower($request->nameroles), 'guard_name' => 'api']);
+
+            if ($this->useCache) { //hapus cache data lama
+                Redis::del('get_all_roles');
+            }
             
             GLog::AddLog('success input roles', $request->nameroles, ""); 
 
@@ -66,14 +72,14 @@ class ManageRoles extends Controller
         try {
 
             $data = false;
-            if ($this->useCache) {
+            if ($this->useCache) { //cache
                 $data = json_decode(Redis::get('get_all_roles'),false);
             }
                 
             if (!$data || !$this->useCache) {
                 $data = Role::all();
                 if ($this->useCache) {
-                    Redis::setex('get_all_roles', 3600, $data);
+                    Redis::setex('get_all_roles', $this->useExp, $data);
                 }
             }
             
@@ -83,7 +89,8 @@ class ManageRoles extends Controller
             $permissionsData = Auth::user()->getAllPermissions()->map->only('id', 'name');
             $jsonData->permissions = $permissionsData; //letak permission di api
 
-            GLog::AddLog('success get all roles', "", ""); 
+            GLog::AddLog('success get all roles', "Data successfully retrieved", "info");
+            
             return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $jsonData], 200);
         } catch (\Exception $e) {
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
@@ -95,12 +102,15 @@ class ManageRoles extends Controller
     public function DelRoles(Role $role, $id_roles){
         try {
             $item = Role::withCount('users')->find($id_roles);
+
+            if ($this->useCache) { //hapus cache data lama
+                Redis::del('get_all_roles');
+            }
        
             if ($item && $item->users_count > 0) {
                GLog::AddLog('Role has been assigned', "This role '".$id_roles."' has been used by the user.", "warning"); 
-               return response()->json(["status"=> "fail","message"=> "Server Error","data" => "This role '".$id_roles."' has been used by the user."], 500);
+               return response()->json(["status"=> "fail","message"=> "Server Error","data" => "This role '".$id_roles."' has been assigned."], 500);
             }
-   
 
             $role = Role::findById($id_roles);
             if ($role) {

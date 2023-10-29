@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Auth;
 use App\Helpers\Helper as GLog;
 //spatie
 use Spatie\Permission\Models\Permission;
@@ -15,37 +17,61 @@ use App\Models\User;
 
 class ManagePermission extends Controller
 {
- 
+    
+    private $useCache;
+    private $useExp;
+
+    public function __construct()
+    {
+        $this->useCache = env('USE_CACHE_REDIS', true); //setup redis
+        $this->useExp = env('USE_EXPIRED', 3600); //setup redis
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();//clear cache spatie
+    }
+
+
     public function GetPermission($id_roles)
     {   
 
-        if (!auth()->user()->can('update permission')) {
+        if (!auth()->user()->can('view permission')) {
             return response()->json(["status"=> "fails","message"=> "Unauthorized. You do not have access.","data" => null], 401);
         }
         
         try {
-            $permissions = Permission::all(['id', 'name', 'group']);
-            $roleIdToCheck = $id_roles; 
-            $permissionsWithStatus = $permissions->groupBy('group')->map(function ($groupPermissions, $groupName) use ($roleIdToCheck) {
-                $permissions = $groupPermissions->map(function ($permission) use ($roleIdToCheck) {
-                    $data = DB::table('role_has_permissions')
-                        ->where('role_id', $roleIdToCheck)
-                        ->where('permission_id', $permission->id)
-                        ->first();
+            
+            $permissionsWithStatus = false;
+            if ($this->useCache) { //cache
+                $permissionsWithStatus = json_decode(Redis::get('get_all_role_and_permission'),false);
+            }
+
+            if (!$permissionsWithStatus || !$this->useCache) {
+
+                $permissions = Permission::all(['id', 'name', 'group']);
+                
+                $roleIdToCheck = $id_roles; 
+                $permissionsWithStatus = $permissions->groupBy('group')->map(function ($groupPermissions, $groupName) use ($roleIdToCheck) {
+                    $permissions = $groupPermissions->map(function ($permission) use ($roleIdToCheck) {
+                        $data = DB::table('role_has_permissions')
+                            ->where('role_id', $roleIdToCheck)
+                            ->where('permission_id', $permission->id)
+                            ->first();
+
+                        return [
+                            'id' => $permission->id,
+                            'name' => $permission->name,
+                            'status_check' => $data ? true : false,
+                        ];
+                    });
 
                     return [
-                        'id' => $permission->id,
-                        'name' => $permission->name,
-                        'status_check' => $data ? true : false,
+                        'group' => $groupName,
+                        'permissions' => $permissions,
                     ];
                 });
 
-                return [
-                    'group' => $groupName,
-                    'permissions' => $permissions,
-                ];
-            });
-
+                if ($this->useCache) {
+                    Redis::setex('get_all_role_and_permission', $this->useExp, $permissionsWithStatus);
+                }
+            }
 
             GLog::AddLog('Success retrieved data', "Data successfully retrieved", "info");
             return response()->json(["status"=> "success","message"=> "Data successfully retrieved","data" => $permissionsWithStatus], 200);
@@ -59,14 +85,16 @@ class ManagePermission extends Controller
     //update permission
     public function UpdatePermission(Request $request) {  
 
+        if (!auth()->user()->can('update permission')) {
+            return response()->json(["status"=> "fails","message"=> "Unauthorized. You do not have access.","data" => null], 401);
+        }
+
         DB::beginTransaction(); 
         // reset cache permission
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $validator = Validator::make($request->all(), [
             'roleid' => 'required'
         ]);
-
 
 
         if ($validator->fails()) {
@@ -77,7 +105,11 @@ class ManagePermission extends Controller
             if ($request->permission_id) {
                 try {
                     
-                    $deleted = DB::table('role_has_permissions')->where('role_id', '=', $request->roleid)->delete();
+                    if ($this->useCache) { 
+                        Redis::del('get_all_role_and_permission');
+                    }
+
+                    DB::table('role_has_permissions')->where('role_id', '=', $request->roleid)->delete();
 
                     $permissionsToInsert = [];
                     foreach ($request->permission_id as $permissionId) {
@@ -86,7 +118,7 @@ class ManagePermission extends Controller
                             'role_id' => $request->roleid,
                         ];
                     }
-                    $resInsert = DB::table('role_has_permissions')->insert($permissionsToInsert);
+                    DB::table('role_has_permissions')->insert($permissionsToInsert);
 
                     GLog::AddLog('success update permission', json_encode($permissionsToInsert), "info"); 
 
