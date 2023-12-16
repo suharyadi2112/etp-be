@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Middlewares\PermissionMiddleware;
 
 use App\Http\Controllers\API\PassportAuthController;
-use App\Http\Controllers\API\ManageRoles\ManageRoles;
+use App\Http\Controllers\API\ManageRoles\ManageRoles; 
 use App\Http\Controllers\API\ManageRoles\ManagePermission;
 /*
 |--------------------------------------------------------------------------
@@ -17,17 +17,17 @@ use App\Http\Controllers\API\ManageRoles\ManagePermission;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE');
+header('Access-Control-Allow-Headers: Content-Type, X-Auth-Token, Origin, Authorization');
 
 Route::post('login', [PassportAuthController::class, 'login']);
 Route::post('register', [PassportAuthController::class, 'register']);
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    //manage roles
-    // return $request->user();
-});
+Route::middleware(['auth:api'])->group(function () {    
+    //logout
+    Route::post('logout', [PassportAuthController::class, 'logout']);
 
-
-Route::middleware('auth:api')->group(function () {
     //manage roles
     Route::get('get_roles', [ManageRoles::class, 'GetRoles']);
     Route::post('store_roles', [ManageRoles::class, 'StoreRoles']);

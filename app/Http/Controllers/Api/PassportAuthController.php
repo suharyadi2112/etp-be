@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Passport\TokenRepository;
 use App\Helpers\Helper as GLog;
 //spatie
 use Spatie\Permission\Models\Role;
@@ -71,7 +72,7 @@ class PassportAuthController extends Controller
             }
         } else {
             GLog::AddLog('fails login', "gagal login", "warning"); 
-            return response()->json(["status"=> "fails", "message" => "Unauthorised","data" => $token], 401);
+            return response()->json(["status"=> "fails", "message" => "Unauthorised","data" => ""], 401);
         }
     }
 
@@ -117,4 +118,29 @@ class PassportAuthController extends Controller
             return response()->json(["status"=> "fail","message"=> "Server Error","data" => $e->getMessage()], 500);
         }
     }
+
+
+    public function logout(Request $request){
+
+        DB::beginTransaction();
+
+        try {
+
+            $user = Auth::user()->token();
+            $user->revoke();
+
+            DB::commit();
+            GLog::AddLog('Success logout', "Token success revoke", "info");
+            return response()->json(["status"=> "success", "message" => "Logout Success", "data" => ""], 200);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+            GLog::AddLog('fails logout', $e->getMessage(), "error"); 
+            return response()->json(["status"=> "fail","message"=> "Server Error","data" => $e->getMessage()], 500);
+
+        }
+
+    }
+
 }

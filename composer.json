@@ -10,7 +10,6 @@
     "require": {
         "php": "^7.4.0|^8.0",
         "fideloper/proxy": "^4.4",
-        "fruitcake/laravel-cors": "^2.0",
         "guzzlehttp/guzzle": "^7.0.1",
         "laravel/framework": "^8.26.1",
         "laravel/passport": "10.4.1",
