@@ -29,7 +29,6 @@ class ManageRoles extends Controller
     {
         $this->useCache = env('USE_CACHE_REDIS', false); //setup redis
         $this->useExp = env('USE_EXPIRED', 3600); //setup redis
-        $this->jobLog = env('JOBLOG', false); //setup job log
     }
 
     public function StoreRoles(Request $request){
@@ -83,15 +82,10 @@ class ManageRoles extends Controller
                 }
             }
             
-            $resData = DataTables::of($data)->addIndexColumn()->make(true);
-            $jsonData = $resData->getData();
-
-            $permissionsData = Auth::user()->getAllPermissions()->map->only('id', 'name');
-            $jsonData->permissions = $permissionsData; //letak permission di api
 
             GLog::AddLog('success get all roles', "Data successfully retrieved", "info");
-            
-            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $jsonData], 200);
+            return DataTables::of($data)->addIndexColumn()->make(true)->getData();
+           
         } catch (\Exception $e) {
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> "Server Error","data" => $e->getMessage()], 500);

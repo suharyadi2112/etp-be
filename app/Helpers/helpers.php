@@ -12,9 +12,12 @@ use App\Jobs\LogJob as LJ;//job log
 class Helper
 {
 
+  public $jobLog;
+
   //log
   public static function AddLog($subject, $data, $specification)
   {
+
     $log = [];
     $log['subject'] = $subject;
     $log['url'] = Request::fullUrl();
@@ -49,7 +52,13 @@ class Helper
           break;
       }
     }
-    dispatch(new LJ($log));
+
+    $instance = new self();
+    $instance->jobLog = env('JOBLOG', true);
+    if ($instance->jobLog) { //env JOBLOG
+       dispatch(new LJ($log));
+    }
+
   }
 
 
