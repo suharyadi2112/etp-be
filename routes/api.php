@@ -20,7 +20,7 @@ header('Access-Control-Allow-Headers: Content-Type, X-Auth-Token, Origin, Author
 
 Route::post('login', [PassportAuthController::class, 'login']);
 Route::post('register', [PassportAuthController::class, 'register']);
-Route::post('/hello-world', [PassportAuthController::class, 'helloWorld']);
+Route::get('/hello-world', [PassportAuthController::class, 'helloWorld']);
 
 Route::middleware(['auth:api'])->group(function () {
     //logout
