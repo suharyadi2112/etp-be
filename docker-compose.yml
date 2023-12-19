@@ -36,11 +36,6 @@ services:
     command: [nginx-debug, '-g', 'daemon off;']
   # POSTGRES CONTAINER
 #Docker Networks
-volumes:
-  dbdata:
-    driver: local
-  pgdata:
-    driver: local
 networks:
   efo_networks:
     name: efo_networks
