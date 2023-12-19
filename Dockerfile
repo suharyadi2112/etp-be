@@ -79,6 +79,8 @@ RUN php artisan key:generate
 
 RUN php artisan passport:keys 
 
+RUN php artisan migrate
+
 RUN php artisan passport:install
 
 RUN php artisan config:cache
