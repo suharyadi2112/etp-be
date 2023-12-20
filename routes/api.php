@@ -1,12 +1,9 @@
 <?php
+use App\Http\Controllers\Api\ManageRoles\ManagePermission;
+use App\Http\Controllers\Api\ManageRoles\ManageRoles;
+use App\Http\Controllers\Api\PassportAuthController;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use Spatie\Permission\Middlewares\PermissionMiddleware;
 
-use App\Http\Controllers\API\PassportAuthController;
-use App\Http\Controllers\API\ManageRoles\ManageRoles; 
-use App\Http\Controllers\API\ManageRoles\ManagePermission;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -23,8 +20,9 @@ header('Access-Control-Allow-Headers: Content-Type, X-Auth-Token, Origin, Author
 
 Route::post('login', [PassportAuthController::class, 'login']);
 Route::post('register', [PassportAuthController::class, 'register']);
+Route::get('/hello-world', [PassportAuthController::class, 'helloWorld']);
 
-Route::middleware(['auth:api'])->group(function () {    
+Route::middleware(['auth:api'])->group(function () {
     //logout
     Route::post('logout', [PassportAuthController::class, 'logout']);
 
