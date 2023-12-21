@@ -28,6 +28,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     //manage roles
     Route::get('get_roles', [ManageRoles::class, 'GetRoles']);
+    Route::post('update_roles', [ManageRoles::class, 'UpdateRoles']);
     Route::post('store_roles', [ManageRoles::class, 'StoreRoles']);
     Route::post('del_roles/{id_roles}', [ManageRoles::class, 'DelRoles']);
     Route::get('get_permission/{id_roles}', [ManagePermission::class, 'GetPermission']);

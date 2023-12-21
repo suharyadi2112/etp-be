@@ -41,7 +41,7 @@ class ManageRoles extends Controller
 
         if ($validator->fails()) {
             GLog::AddLog('fails input roles', $validator->errors(), "alert"); 
-            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => ""], 500);
+            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => ""], 400);
         }
 
         try {
@@ -112,6 +112,35 @@ class ManageRoles extends Controller
                 GLog::AddLog('Roles deleted', "This role '".$id_roles."' has been deleted.", "info"); 
                 return response()->json(["status"=> "success","message"=> "Success del datas roles", "data" => ""], 200);
             }
+
+        } catch (\Exception $e) {
+            GLog::AddLog('Fails to processed', $e->getMessage(), "error"); 
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
+
+    }
+
+    public function UpdateRoles(Role $role, Request $request){
+
+        $validator = Validator::make($request->all(), [
+            'nameroles' => 'required|unique:roles,name',
+            'id_roles' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            GLog::AddLog('fails update roles', $validator->errors(), "alert"); 
+            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => ""], 400);
+        }
+
+        try {
+            if ($this->useCache) {
+                Redis::del('get_all_roles');
+            }
+       
+            $role = Role::where('id', $request->id_roles)->update(['name' => $request->nameroles]);
+            GLog::AddLog('Roles updated', "This role '".$request->id_roles."' has been update.", "info"); 
+            return response()->json(["status"=> "success","message"=> "Success update data roles", "data" => null], 200);
+            
 
         } catch (\Exception $e) {
             GLog::AddLog('Fails to processed', $e->getMessage(), "error"); 
