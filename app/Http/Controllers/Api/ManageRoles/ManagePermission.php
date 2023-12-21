@@ -12,6 +12,7 @@ use App\Helpers\Helper as GLog;
 //spatie
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
+use Spatie\Permission\Models\Role;
 //model
 use App\Models\User;
 
@@ -32,10 +33,10 @@ class ManagePermission extends Controller
     public function GetPermission($id_roles)
     {   
 
-        if (!auth()->user()->can('view permission')) {
-            return response()->json(["status"=> "fails","message"=> "Unauthorized. You do not have access.","data" => null], 401);
-        }
-        
+        // if (!auth()->user()->can('view permission')) {
+        //     return response()->json(["status"=> "fails","message"=> "Unauthorized. You do not have access.","data" => null], 401);
+        // }
+
         try {
             
             $permissionsWithStatus = false;
@@ -45,9 +46,12 @@ class ManagePermission extends Controller
 
             if (!$permissionsWithStatus || !$this->useCache) {
 
-                $permissions = Permission::all(['id', 'name', 'group']);
-                
                 $roleIdToCheck = $id_roles; 
+
+                $roleName = Role::all(['id', 'name']);
+
+
+                $permissions = Permission::all(['id', 'name', 'group']);
                 $permissionsWithStatus = $permissions->groupBy('group')->map(function ($groupPermissions, $groupName) use ($roleIdToCheck) {
                     $permissions = $groupPermissions->map(function ($permission) use ($roleIdToCheck) {
                         $data = DB::table('role_has_permissions')
@@ -74,7 +78,7 @@ class ManagePermission extends Controller
             }
 
             GLog::AddLog('Success retrieved data', "Data successfully retrieved", "info");
-            return response()->json(["status"=> "success","message"=> "Data successfully retrieved","data" => $permissionsWithStatus], 200);
+            return response()->json(["status"=> "success","message"=> "Data successfully retrieved","data" => $permissionsWithStatus, "dataRole" => $roleName], 200);
 
         } catch (\Exception $e) {
             GLog::AddLog('fails get roles and permission', $e->getMessage(), "error"); 

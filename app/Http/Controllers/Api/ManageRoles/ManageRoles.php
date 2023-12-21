@@ -66,7 +66,7 @@ class ManageRoles extends Controller
 
     }
 
-    public function GetRoles(Request $request){
+    public function GetRoles(){
         
           try {
 
