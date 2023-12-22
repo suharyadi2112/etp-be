@@ -94,6 +94,7 @@ class ManageRoles extends Controller
     }
 
     public function DelRoles(Role $role, $id_roles){
+        DB::beginTransaction(); 
         try {
             $item = Role::withCount('users')->find($id_roles);
 
@@ -109,11 +110,13 @@ class ManageRoles extends Controller
             $role = Role::where('id', $id_roles)->first();
             if ($role) {
                 $role->delete();
+                DB::commit();
                 GLog::AddLog('Roles deleted', "This role '".$id_roles."' has been deleted.", "info"); 
                 return response()->json(["status"=> "success","message"=> "Success del datas roles", "data" => ""], 200);
             }
 
         } catch (\Exception $e) {
+            DB::rollBack();
             GLog::AddLog('Fails to processed', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }
@@ -121,6 +124,8 @@ class ManageRoles extends Controller
     }
 
     public function UpdateRoles(Role $role, Request $request){
+
+        DB::beginTransaction(); 
 
         $validator = Validator::make($request->all(), [
             'nameroles' => 'required|unique:roles,name',
@@ -138,11 +143,14 @@ class ManageRoles extends Controller
             }
        
             $role = Role::where('id', $request->id_roles)->update(['name' => $request->nameroles]);
+            DB::commit();
+            
             GLog::AddLog('Roles updated', "This role '".$request->id_roles."' has been update.", "info"); 
             return response()->json(["status"=> "success","message"=> "Success update data roles", "data" => null], 200);
             
 
         } catch (\Exception $e) {
+            DB::rollBack();
             GLog::AddLog('Fails to processed', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }

@@ -32,11 +32,6 @@ class ManagePermission extends Controller
 
     public function GetPermission($id_roles)
     {   
-
-        // if (!auth()->user()->can('view permission')) {
-        //     return response()->json(["status"=> "fails","message"=> "Unauthorized. You do not have access.","data" => null], 401);
-        // }
-
         try {
             
             $permissionsWithStatus = false;
@@ -89,10 +84,6 @@ class ManagePermission extends Controller
     //update permission
     public function UpdatePermission(Request $request) {  
 
-        if (!auth()->user()->can('update permission')) {
-            return response()->json(["status"=> "fails","message"=> "Unauthorized. You do not have access.","data" => null], 401);
-        }
-
         DB::beginTransaction(); 
         // reset cache permission
 
@@ -100,44 +91,40 @@ class ManagePermission extends Controller
             'roleid' => 'required'
         ]);
 
-
         if ($validator->fails()) {
             GLog::AddLog('fails body payload', $validator->errors(), "alert"); 
             return response()->json(["status"=> "fail", "message" => $validator->errors(),"data" => null], 400);
         }else{
          
-            if ($request->permission_id) {
-                try {
-                    
-                    if ($this->useCache) { 
-                        Redis::del('get_all_role_and_permission');
-                    }
-
-                    DB::table('role_has_permissions')->where('role_id', '=', $request->roleid)->delete();
-
-                    $permissionsToInsert = [];
-                    foreach ($request->permission_id as $permissionId) {
-                        $permissionsToInsert[] = [
-                            'permission_id' => $permissionId,
-                            'role_id' => $request->roleid,
-                        ];
-                    }
-                    DB::table('role_has_permissions')->insert($permissionsToInsert);
-
-                    GLog::AddLog('success update permission', json_encode($permissionsToInsert), "info"); 
-
-                    DB::commit();
-                    return response()->json(["status"=> "success", "message" => "Updated permissions success","data" => $permissionsToInsert ], 200);
-                } catch (\Exception $e) {
-
-                    DB::rollBack();
-
-                    GLog::AddLog('fails udpate permission', $e->getMessage(), "error"); 
-                    return response()->json(["status"=> "fail","message"=> "Server Error","data" => $e->getMessage()], 500);
+            try {
+                
+                if ($this->useCache) { 
+                    Redis::del('get_all_role_and_permission');
                 }
-            }else{
-                return response()->json(["status"=> "fail","message"=> "Permission id not found","data" => null ], 500);
+
+                DB::table('role_has_permissions')->where('role_id', '=', $request->roleid)->delete();
+
+                $permissionsToInsert = [];
+                foreach ($request->permissions as $permissionId) {
+                    $permissionsToInsert[] = [
+                        'permission_id' => $permissionId['permission_id'],
+                        'role_id' => $request->roleid,
+                    ];
+                }
+                DB::table('role_has_permissions')->insert($permissionsToInsert);
+
+                GLog::AddLog('success update permission', json_encode($permissionsToInsert), "info"); 
+
+                DB::commit();
+                return response()->json(["status"=> "success", "message" => "Updated permissions success","data" => $permissionsToInsert ], 200);
+            } catch (\Exception $e) {
+
+                DB::rollBack();
+
+                GLog::AddLog('fails udpate permission', $e->getMessage(), "error"); 
+                return response()->json(["status"=> "fail","message"=> "Server Error","data" => $e->getMessage()], 500);
             }
+        
         } 
     }
 
