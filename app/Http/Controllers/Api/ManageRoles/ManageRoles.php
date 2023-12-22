@@ -29,7 +29,6 @@ class ManageRoles extends Controller
     {
         $this->useCache = env('USE_CACHE_REDIS', false); //setup redis
         $this->useExp = env('USE_EXPIRED', 3600); //setup redis
-        $this->jobLog = env('JOBLOG', false); //setup job log
     }
 
     public function StoreRoles(Request $request){
@@ -37,12 +36,12 @@ class ManageRoles extends Controller
         DB::beginTransaction();
 
         $validator = Validator::make($request->all(), [
-            'nameroles' => 'required'
+            'nameroles' => 'required|unique:roles,name'
         ]);
 
         if ($validator->fails()) {
             GLog::AddLog('fails input roles', $validator->errors(), "alert"); 
-            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => ""], 500);
+            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => ""], 400);
         }
 
         try {
@@ -67,9 +66,9 @@ class ManageRoles extends Controller
 
     }
 
-    public function GetRoles(Request $request){
+    public function GetRoles(){
         
-        try {
+          try {
 
             $data = false;
             if ($this->useCache) { //cache
@@ -83,15 +82,10 @@ class ManageRoles extends Controller
                 }
             }
             
-            $resData = DataTables::of($data)->addIndexColumn()->make(true);
-            $jsonData = $resData->getData();
-
-            $permissionsData = Auth::user()->getAllPermissions()->map->only('id', 'name');
-            $jsonData->permissions = $permissionsData; //letak permission di api
 
             GLog::AddLog('success get all roles', "Data successfully retrieved", "info");
-            
-            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $jsonData], 200);
+            return DataTables::of($data)->addIndexColumn()->make(true)->getData();
+           
         } catch (\Exception $e) {
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> "Server Error","data" => $e->getMessage()], 500);
@@ -100,6 +94,7 @@ class ManageRoles extends Controller
     }
 
     public function DelRoles(Role $role, $id_roles){
+        DB::beginTransaction(); 
         try {
             $item = Role::withCount('users')->find($id_roles);
 
@@ -109,19 +104,55 @@ class ManageRoles extends Controller
        
             if ($item && $item->users_count > 0) {
                GLog::AddLog('Role has been assigned', "This role '".$id_roles."' has been used by the user.", "warning"); 
-               return response()->json(["status"=> "fail","message"=> "Server Error","data" => "This role '".$id_roles."' has been assigned."], 500);
+               return response()->json(["status"=> "fail","message"=> "This role has been assigned.","data" => null], 400);
             }
 
-            $role = Role::findById($id_roles);
+            $role = Role::where('id', $id_roles)->first();
             if ($role) {
                 $role->delete();
+                DB::commit();
                 GLog::AddLog('Roles deleted', "This role '".$id_roles."' has been deleted.", "info"); 
                 return response()->json(["status"=> "success","message"=> "Success del datas roles", "data" => ""], 200);
             }
 
         } catch (\Exception $e) {
+            DB::rollBack();
             GLog::AddLog('Fails to processed', $e->getMessage(), "error"); 
-            return response()->json(["status"=> "fail","message"=> "Server Error","data" => $e->getMessage()], 500);
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
+
+    }
+
+    public function UpdateRoles(Role $role, Request $request){
+
+        DB::beginTransaction(); 
+
+        $validator = Validator::make($request->all(), [
+            'nameroles' => 'required|unique:roles,name',
+            'id_roles' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            GLog::AddLog('fails update roles', $validator->errors(), "alert"); 
+            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => ""], 400);
+        }
+
+        try {
+            if ($this->useCache) {
+                Redis::del('get_all_roles');
+            }
+       
+            $role = Role::where('id', $request->id_roles)->update(['name' => $request->nameroles]);
+            DB::commit();
+            
+            GLog::AddLog('Roles updated', "This role '".$request->id_roles."' has been update.", "info"); 
+            return response()->json(["status"=> "success","message"=> "Success update data roles", "data" => null], 200);
+            
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            GLog::AddLog('Fails to processed', $e->getMessage(), "error"); 
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }
 
     }
