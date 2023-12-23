@@ -96,13 +96,14 @@ class ManageRoles extends Controller
     public function DelRoles(Role $role, $id_roles){
         DB::beginTransaction(); 
         try {
-            $item = Role::withCount('users')->find($id_roles);
+
+            $userCount = Role::find($id_roles)->users->count();//cek pengguna dengan roles
 
             if ($this->useCache) { //hapus cache data lama
                 Redis::del('get_all_roles');
             }
        
-            if ($item && $item->users_count > 0) {
+            if ($userCount > 0) {
                GLog::AddLog('Role has been assigned', "This role '".$id_roles."' has been used by the user.", "warning"); 
                return response()->json(["status"=> "fail","message"=> "This role has been assigned.","data" => null], 400);
             }
@@ -112,7 +113,7 @@ class ManageRoles extends Controller
                 $role->delete();
                 DB::commit();
                 GLog::AddLog('Roles deleted', "This role '".$id_roles."' has been deleted.", "info"); 
-                return response()->json(["status"=> "success","message"=> "Success del datas roles", "data" => ""], 200);
+                return response()->json(["status"=> "success","message"=> "Success del datas roles", "data" => null], 200);
             }
 
         } catch (\Exception $e) {
@@ -134,7 +135,7 @@ class ManageRoles extends Controller
 
         if ($validator->fails()) {
             GLog::AddLog('fails update roles', $validator->errors(), "alert"); 
-            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => ""], 400);
+            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
         }
 
         try {

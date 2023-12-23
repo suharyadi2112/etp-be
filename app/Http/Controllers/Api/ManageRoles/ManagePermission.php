@@ -77,7 +77,7 @@ class ManagePermission extends Controller
 
         } catch (\Exception $e) {
             GLog::AddLog('fails get roles and permission', $e->getMessage(), "error"); 
-            return response()->json(["status"=> "fail","message"=> "Server Error","data" => $e->getMessage()], 500);
+            return response()->json(["status"=> "fail", "message"=>  $e->getMessage(),"data" => null], 500);
         }
     }
 
@@ -122,7 +122,7 @@ class ManagePermission extends Controller
                 DB::rollBack();
 
                 GLog::AddLog('fails udpate permission', $e->getMessage(), "error"); 
-                return response()->json(["status"=> "fail","message"=> "Server Error","data" => $e->getMessage()], 500);
+                return response()->json(["status"=> "fail","message"=>  $e->getMessage(),"data" => null], 500);
             }
         
         } 

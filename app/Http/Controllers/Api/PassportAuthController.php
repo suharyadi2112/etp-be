@@ -19,9 +19,12 @@ use App\Models\User;
 
 class PassportAuthController extends Controller
 {
+    private $keyToken;
+
     public function __construct()
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions(); //clear cache spatie
+        $this->keyToken = env('KEY_TOKEN_LOGIN', false); //setup redis
     }
 
     public function helloWorld()
@@ -53,7 +56,7 @@ class PassportAuthController extends Controller
 
             try {
 
-                $token     = auth()->user()->createToken('EtpEducation')->accessToken;
+                $token     = auth()->user()->createToken($this->keyToken);
                 $userRoles = auth()->user()->getRoleNames()->toArray();
 
                 $user       = Auth::user();
@@ -73,7 +76,7 @@ class PassportAuthController extends Controller
                         "message" => "Success login",
                         "data"    => [
                             "token_type"   => "Bearer",
-                            "access_token" => $token,
+                            "access_token" => $token->plainTextToken,
                             "user_info"    => $user,
                             "permission"   => $Permission,
                         ],
@@ -81,11 +84,11 @@ class PassportAuthController extends Controller
 
             } catch (\Exception $e) {
                 GLog::AddLog('fails create token', $e->getMessage(), "error");
-                return response()->json(["status" => "fail", "message" => "Server Error", "data" => $e->getMessage()], 500);
+                return response()->json(["status" => "fail", "message" => $e->getMessage(), "data" => null], 500);
             }
         } else {
             GLog::AddLog('fails login', "gagal login", "warning");
-            return response()->json(["status" => "fails", "message" => "Unauthorised", "data" => ""], 401);
+            return response()->json(["status" => "fails", "message" => "Unauthorised", "data" => null], 401);
         }
     }
 
@@ -128,7 +131,7 @@ class PassportAuthController extends Controller
             DB::rollBack(); // roolback data
 
             GLog::AddLog('fails store users', $e->getMessage(), "error");
-            return response()->json(["status" => "fail", "message" => "Server Error", "data" => $e->getMessage()], 500);
+            return response()->json(["status" => "fail", "message" => $e->getMessage(), "data" => $request->all()], 500);
         }
     }
 
@@ -140,18 +143,17 @@ class PassportAuthController extends Controller
 
         try {
 
-            $user = Auth::user()->token();
-            $user->revoke();
+            Auth::user()->tokens()->delete();
 
             DB::commit();
             GLog::AddLog('Success logout', "Token success revoke", "info");
-            return response()->json(["status" => "success", "message" => "Logout Success", "data" => ""], 200);
+            return response()->json(["status" => "success", "message" => "Logout Success", "data" => null], 200);
 
         } catch (\Exception $e) {
 
             DB::rollBack();
             GLog::AddLog('fails logout', $e->getMessage(), "error");
-            return response()->json(["status" => "fail", "message" => "Server Error", "data" => $e->getMessage()], 500);
+            return response()->json(["status" => "fail", "message" => $e->getMessage(), "data" => null], 500);
 
         }
 

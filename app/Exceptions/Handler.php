@@ -3,26 +3,35 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Illuminate\Auth\AuthenticationException;
 use Throwable;
 
 class Handler extends ExceptionHandler
 {
     /**
+     * A list of exception types with their corresponding custom log levels.
+     *
+     * @var array<class-string<\Throwable>, \Psr\Log\LogLevel::*>
+     */
+    protected $levels = [
+        //
+    ];
+
+    /**
      * A list of the exception types that are not reported.
      *
-     * @var array
+     * @var array<int, class-string<\Throwable>>
      */
     protected $dontReport = [
         //
     ];
 
     /**
-     * A list of the inputs that are never flashed for validation exceptions.
+     * A list of the inputs that are never flashed to the session on validation exceptions.
      *
-     * @var array
+     * @var array<int, string>
      */
     protected $dontFlash = [
+        'current_password',
         'password',
         'password_confirmation',
     ];
@@ -38,29 +47,4 @@ class Handler extends ExceptionHandler
             //
         });
     }
-
-    protected function unauthenticated($request, AuthenticationException $exception)
-    {
-      
-        return response()->json([
-            "status" => "fail",
-            "message" => "Unauthorized. You do not have access.",
-            "data" => null
-        ], 401);
-    }
-
-    protected function can($request, Closure $next, ...$permissions)
-    {
-        try {
-            // Check if the user has any of the specified permissions.
-            $this->authorizeAny($permissions);
-        } catch (AuthorizationException $e) {
-            // Customize the response when authorization fails.
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        return $next($request);
-    }
-
-    
 }
