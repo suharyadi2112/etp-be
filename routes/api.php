@@ -40,4 +40,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     //manage semester
     Route::post('store_semester', [ManageSemester::class, 'StoreSemester']);
+    Route::get('get_semester', [ManageSemester::class, 'GetSemester']);
+
 });

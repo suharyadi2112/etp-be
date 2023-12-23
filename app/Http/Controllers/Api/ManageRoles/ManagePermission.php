@@ -38,13 +38,11 @@ class ManagePermission extends Controller
             if ($this->useCache) { //cache
                 $permissionsWithStatus = json_decode(Redis::get('get_all_role_and_permission'),false);
             }
+            $roleName = Role::all(['id', 'name']);
 
             if (!$permissionsWithStatus || !$this->useCache) {
 
                 $roleIdToCheck = $id_roles; 
-
-                $roleName = Role::all(['id', 'name']);
-
 
                 $permissions = Permission::all(['id', 'name', 'group']);
                 $permissionsWithStatus = $permissions->groupBy('group')->map(function ($groupPermissions, $groupName) use ($roleIdToCheck) {

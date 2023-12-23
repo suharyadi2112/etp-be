@@ -28,6 +28,29 @@ class ManageSemester extends Controller
         $this->useExp = env('USE_EXPIRED', 3600); //setup redis
     }
 
+    public function GetSemester(){
+
+        try {
+            $getSemester = false;
+            if ($this->useCache) { //cache
+                $getSemester = json_decode(Redis::get('get_all_semester'),false);
+            }
+            $getSemester = Semester::all();
+
+            if ($this->useCache) {
+                Redis::setex('get_all_semester', $this->useExp, $getSemester);
+            }
+
+            GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
+            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $getSemester], 200);
+
+        } catch (\Exception $e) {
+            GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
+
+    }
+
     public function StoreSemester(Request $request){
 
         DB::beginTransaction();
@@ -77,7 +100,7 @@ class ManageSemester extends Controller
             DB::rollBack();// roolback data
 
             GLog::AddLog('fails input semester to db', $e->getMessage(), "error"); 
-            return response()->json(["status"=> "fail","message"=> "Server Error","data" => $e->getMessage()], 500);
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }
 
     }
