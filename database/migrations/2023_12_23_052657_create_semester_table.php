@@ -13,7 +13,7 @@ class CreateSemesterTable extends Migration
      */
     public function up()
     {
-        Schema::create('semester', function (Blueprint $table) {
+        Schema::create('a_semester', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('semester_name')->nullable(false);
             $table->string('academic_year')->nullable(false);

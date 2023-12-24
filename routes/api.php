@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\SanctumAuthController;
 use App\Http\Controllers\Api\ManageRoles\ManageRoles;
 use App\Http\Controllers\Api\ManageSemester\ManageSemester;
 use App\Http\Controllers\Api\ManageRoles\ManagePermission;
+use App\Http\Controllers\Api\ManageMataPelajaran\ManageMataPelajaran;
 
 /*
 |--------------------------------------------------------------------------
@@ -42,5 +43,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('store_semester', [ManageSemester::class, 'StoreSemester']);
     Route::get('get_semester', [ManageSemester::class, 'GetSemester']);
     Route::put('update_semester/{id}', [ManageSemester::class, 'UpdateSemester']);
+
+    //manage mata_pelajaran
+    Route::post('store_mata_pelajaran', [ManageMataPelajaran::class, 'StoreMatPelajaran']);
+    Route::get('get_mata_pelajaran', [ManageMataPelajaran::class, 'GetMatPelajaran']);
+    Route::put('update_mata_pelajaran/{id}', [ManageMataPelajaran::class, 'UpdateMatPelajaran']);
+    Route::delete('del_mata_pelajaran/{id}', [ManageMataPelajaran::class, 'DelMatPelajaran']);
 
 });

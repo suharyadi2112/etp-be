@@ -12,7 +12,7 @@ class Semester extends Model
 
     protected $primaryKey = 'id';
     public $incrementing = false;
-    protected $table = 'semester';
+    protected $table = 'a_semester';
 
    protected $fillable = [
         'id',
