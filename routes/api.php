@@ -2,7 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\PassportAuthController;
+use App\Http\Controllers\Api\SanctumAuthController;
 use App\Http\Controllers\Api\ManageRoles\ManageRoles;
 use App\Http\Controllers\Api\ManageSemester\ManageSemester;
 use App\Http\Controllers\Api\ManageRoles\ManagePermission;
@@ -22,12 +22,12 @@ use App\Http\Controllers\Api\ManageRoles\ManagePermission;
 //     return $request->user();
 // });
 
-Route::post('login', [PassportAuthController::class, 'login']);
-Route::post('register', [PassportAuthController::class, 'register']);
+Route::post('login', [SanctumAuthController::class, 'login']);
+Route::post('register', [SanctumAuthController::class, 'register']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
     //logout
-    Route::post('logout', [PassportAuthController::class, 'logout']);
+    Route::post('logout', [SanctumAuthController::class, 'logout']);
 
     //manage roles
     Route::get('get_roles', [ManageRoles::class, 'GetRoles']);
@@ -41,5 +41,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     //manage semester
     Route::post('store_semester', [ManageSemester::class, 'StoreSemester']);
     Route::get('get_semester', [ManageSemester::class, 'GetSemester']);
+    Route::put('update_semester/{id}', [ManageSemester::class, 'UpdateSemester']);
 
 });
