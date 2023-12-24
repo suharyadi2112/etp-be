@@ -17,7 +17,7 @@ use Spatie\Permission\PermissionRegistrar;
 //model
 use App\Models\User;
 
-class PassportAuthController extends Controller
+class SanctumAuthController extends Controller
 {
     private $keyToken;
 
@@ -56,17 +56,12 @@ class PassportAuthController extends Controller
 
             try {
 
-                $token     = auth()->user()->createToken($this->keyToken);
                 $userRoles = auth()->user()->getRoleNames()->toArray();
+                $user      = Auth::user();
+                // Get All Spatie Laravel Permission for Token Abilities Sanctum
+                $abilities = $user->getAllPermissions()->pluck('name')->toArray();
 
-                $user       = Auth::user();
-                $Permission = [];
-
-                foreach ($user->getRoleNames() as $role) {
-                    $rolesModel      = Role::where('name', $role)->first();
-                    $rolesPermission = $rolesModel->permissions->pluck('name')->toArray();
-                    $Permission      = array_merge($Permission, $rolesPermission);
-                }
+                $token = $user->createToken($this->keyToken, $abilities);
 
                 GLog::AddLog('success create token', "success create token", "info");
 
@@ -78,7 +73,7 @@ class PassportAuthController extends Controller
                             "token_type"   => "Bearer",
                             "access_token" => $token->plainTextToken,
                             "user_info"    => $user,
-                            "permission"   => $Permission,
+                            "permission"   => $abilities,
                         ],
                     ], 200)->header('X-User-Roles', implode(', ', $userRoles));
 

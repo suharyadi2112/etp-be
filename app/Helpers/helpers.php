@@ -24,8 +24,13 @@ class Helper
     $log['method'] = Request::method();
     $log['ip'] = Request::ip();
     $log['agent'] = Request::header('user-agent');
-    $log['user_id'] = auth()->check() ? auth()->user()->id : 1;
-    $log['data'] = $data;
+    $log['user_id'] = auth()->check() ? auth()->user()->id : 0;
+    if (is_array($data)) {
+        $log['data'] = json_encode($data); 
+    } else {
+        $log['data'] = (string) $data;
+    }
+    // $log['data'] = $data;
     $log['created_at'] = date('Y-m-d H:i:s');
     $log['updated_at'] = date('Y-m-d H:i:s');
 
