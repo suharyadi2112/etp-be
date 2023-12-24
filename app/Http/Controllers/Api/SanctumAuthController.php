@@ -61,11 +61,7 @@ class SanctumAuthController extends Controller
                 // Get All Spatie Laravel Permission for Token Abilities Sanctum
                 $abilities = $user->getAllPermissions()->pluck('name')->toArray();
 
-                $abilitiesWithoutSpaces = array_map(function ($ability) {
-                    return str_replace(' ', '', $ability);
-                }, $abilities);
-
-                $token = $user->createToken($this->keyToken, $abilitiesWithoutSpaces);
+                $token = $user->createToken($this->keyToken, $abilities);
 
                 GLog::AddLog('success create token', "success create token", "info");
 

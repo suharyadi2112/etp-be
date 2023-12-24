@@ -33,7 +33,7 @@ class ManageSemester extends Controller
 
         // pemanasan tokenCan sanctum
         // $user      = Auth::user();
-        // return response()->json($user->tokenCan('addroles'));
+        // return response()->json($user->tokenCan('add roles'));
 
         try {
             $getSemester = false;
