@@ -32,11 +32,12 @@ class ManagePermission extends Controller
 
     public function GetPermission($id_roles)
     {   
+
         try {
             
             $permissionsWithStatus = false;
-            if ($this->useCache) { //cache
-                $permissionsWithStatus = json_decode(Redis::get('get_all_role_and_permission'),false);
+            if ($this->useCache && $id_roles) { //cache & id if null
+                $permissionsWithStatus = json_decode(Redis::get('get_all_role_and_permission|'.$id_roles),false);
             }
             $roleName = Role::all(['id', 'name']);
 
@@ -65,8 +66,8 @@ class ManagePermission extends Controller
                     ];
                 });
 
-                if ($this->useCache) {
-                    Redis::setex('get_all_role_and_permission', $this->useExp, $permissionsWithStatus);
+                if ($this->useCache && $id_roles) { //cache & id if null
+                    Redis::setex('get_all_role_and_permission|'.$id_roles, $this->useExp, $permissionsWithStatus);
                 }
             }
 
@@ -97,7 +98,7 @@ class ManagePermission extends Controller
             try {
                 
                 if ($this->useCache) { 
-                    Redis::del('get_all_role_and_permission');
+                    Redis::del('get_all_role_and_permission|'.$request->roleid);
                 }
 
                 DB::table('role_has_permissions')->where('role_id', '=', $request->roleid)->delete();
