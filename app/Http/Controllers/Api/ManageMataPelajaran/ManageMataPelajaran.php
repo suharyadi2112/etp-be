@@ -86,18 +86,100 @@ class ManageMataPelajaran extends Controller
 
     }
 
+    public function UpdateMatPelajaran ($idMatPel, Request $request){
 
+        try {
 
-    //-----
+            $request->merge(['id' => $idMatPel]);//merge id to request for validation
+            $validator = $this->validateMatPelajaran($request, 'update');
+
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+
+            DB::transaction(function () use ($request, $idMatPel) {
+                $matPelajran = MataPelajaran::find($idMatPel);
+
+                if (!$matPelajran) {
+                    throw new \Exception('Mata pelajaran not found');
+                }
+
+                $matPelajran->fill($request->all());
+                $matPelajran->save();
+
+                if ($this->useCache) {
+                    Redis::del('get_all_mata_pelajaran');
+                }
+            });
+
+            GLog::AddLog('success updated mata pelajaran', $request->all(), ""); 
+            return response()->json(['status' => 'success', 'message' => 'Mata Pelajaran updated successfully', 'data' => null], 200);
+        } catch (ValidationException $e) {
+            GLog::AddLog('fails update mata pelajaran validation', $e->errors(), 'alert');
+            return response()->json(['status' => 'fail', 'message' => $e->errors(), 'data' => null], 400);
+        } catch (\Exception $e) {
+            GLog::AddLog('fails update mata pelajaran', $e->getMessage(), 'alert');
+            return response()->json(['status' => 'fail', 'message' => $e->getMessage(), 'data' => null], 500);
+        }
+
+    }
+
+    public function DelMatPelajaran ($idMatPel){
+
+        try {
+
+            $subjectName = null;
+            DB::transaction(function () use ($idMatPel, &$subjectName) {
+                $matPelajran = MataPelajaran::find($idMatPel);
+
+                if (!$matPelajran) {
+                    throw new \Exception('Mata pelajaran not found');
+                }
+
+                $subjectName = $matPelajran->subject_name;
+                $matPelajran->delete();//SoftDelete
+
+                if ($this->useCache) {
+                    Redis::del('get_all_mata_pelajaran');
+                }
+
+                GLog::AddLog('success delete mata pelajaran', $matPelajran->subject_name, ""); 
+            });
+
+            return response()->json(['status' => 'success', 'message' => 'Mata Pelajaran delete successfully', 'data' => $subjectName], 200);
+    
+        } catch (ValidationException $e) {
+            GLog::AddLog('fails delete mata pelajaran validation', $e->errors(), 'alert');
+            return response()->json(['status' => 'fail', 'message' => $e->errors(), 'data' => null], 400);
+        } catch (\Exception $e) {
+            GLog::AddLog('fails delete mata pelajaran', $e->getMessage(), 'alert');
+            return response()->json(['status' => 'fail', 'message' => $e->getMessage(), 'data' => null], 500);
+        }
+
+    }
+
     //-----------
     private function validateMatPelajaran(Request $request, $action = 'insert')// insert is default
     {
         $validator = Validator::make($request->all(), [
-            'subject_name' => 'required|string|max:100|unique:a_mata_pelajaran,subject_name',
+            'subject_name' => 'required|string|max:100',
             'subject_description' => 'nullable|string',
-            'education_level' => 'nullable|string',
-            'subject_code' => 'nullable|string|unique:a_mata_pelajaran,subject_code',
+            'education_level' => 'required|string',
+            'subject_code' => 'required|string',
         ]);
+
+        //extend validator, based on action method
+        if ($action === 'insert') {
+            $validator->addRules([
+                'subject_name' => 'unique:a_mata_pelajaran,subject_name',
+                'subject_code' => 'unique:a_mata_pelajaran,subject_code',
+            ]);
+        } elseif ($action === 'update') {
+            $validator->addRules([
+                'subject_name' => 'unique:a_mata_pelajaran,subject_name,' . $request->id,
+                'subject_code' => 'unique:a_mata_pelajaran,subject_code,' . $request->id,
+            ]);
+        }
 
         return $validator;
     }

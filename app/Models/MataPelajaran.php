@@ -4,11 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Ramsey\Uuid\Uuid;
 
 class MataPelajaran extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     protected $table = 'a_mata_pelajaran'; // Nama tabel sesuai dengan skema
 

@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('education_level')->nullable(); // Tingkat pendidikan
             $table->string('subject_code')->unique()->nullable(); // Kode mata pelajaran
             $table->timestamps(); // Waktu pembuatan dan pembaruan
+            $table->softDeletes(); // deleted_at
         });
     }
 

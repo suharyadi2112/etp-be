@@ -119,9 +119,12 @@ class ManageSemester extends Controller
                 if ($this->useCache) {
                     Redis::del('get_all_semester');
                 }
+
+                GLog::AddLog('success updated semester', $request->all(), ""); 
             });
 
-            return response()->json(['status' => 'success', 'message' => 'Semester updated successfully', 'data' => null]);
+            return response()->json(['status' => 'success', 'message' => 'Semester updated successfully', 'data' => $request->all(), 200]);
+
         } catch (ValidationException $e) {
             GLog::AddLog('fails update semester validation', $e->errors(), 'alert');
             return response()->json(['status' => 'fail', 'message' => $e->errors(), 'data' => null], 400);
