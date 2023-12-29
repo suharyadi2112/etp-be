@@ -29,25 +29,35 @@ class ManageSemester extends Controller
         $this->useExp = env('USE_EXPIRED', 3600); //setup redis
     }
 
-    public function GetSemester(){
+    public function GetSemester(Request $request){
 
-        // pemanasan tokenCan sanctum
-        // $user      = Auth::user();
-        // return response()->json($user->tokenCan('add roles'));
-
+        $perPage = $request->input('perPage', 5);
+        $search = $request->input('search');
+        $page = $request->input('page', 1);
+        
         try {
+
+            $cacheKey = 'search_semester:' . md5($search . $perPage . $page);
             $getSemester = false;
-            if ($this->useCache) { //cache
-                $getSemester = json_decode(Redis::get('get_all_semester'),false);
+
+            if ($this->useCache) {
+                $getSemester = json_decode(Redis::get($cacheKey), false);
             }
 
             if (!$getSemester || !$this->useCache) {
-                $getSemester = Semester::all();
-                if ($this->useCache) {
-                    Redis::setex('get_all_semester', $this->useExp, $getSemester);
-                }
-            }
+                $query = Semester::query();
 
+                if ($search) {
+                    $query->search($search);// jika ada pencarian
+                }
+
+                $getSemester = $query->paginate($perPage);
+
+                if ($this->useCache) {//set ke redis
+                    Redis::setex($cacheKey, $this->useExp, json_encode($getSemester));
+                } 
+            }
+            
             GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
             return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $getSemester], 200);
 
@@ -79,7 +89,7 @@ class ManageSemester extends Controller
             ]);
 
             if ($this->useCache) {
-                Redis::del('get_all_semester');
+                Redis::del(Redis::keys('search_semester:*'));
             }
             
             GLog::AddLog('success input semester', $request->all(), ""); 
@@ -106,7 +116,7 @@ class ManageSemester extends Controller
             if ($validator->fails()) {
                 throw new ValidationException($validator);
             }
-
+           
             DB::transaction(function () use ($request, $idSemester) {
                 $semester = Semester::find($idSemester);
 
@@ -117,13 +127,13 @@ class ManageSemester extends Controller
                 $semester->save();
 
                 if ($this->useCache) {
-                    Redis::del('get_all_semester');
+                    Redis::del(Redis::keys('search_semester:*'));
                 }
 
                 GLog::AddLog('success updated semester', $request->all(), ""); 
             });
 
-            return response()->json(['status' => 'success', 'message' => 'Semester updated successfully', 'data' => $request->all(), 200]);
+            return response()->json(['status' => 'success', 'message' => 'Semester updated successfully', 'data' => $request->all()], 200);
 
         } catch (ValidationException $e) {
             GLog::AddLog('fails update semester validation', $e->errors(), 'alert');
