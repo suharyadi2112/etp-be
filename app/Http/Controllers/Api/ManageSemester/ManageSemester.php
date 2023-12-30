@@ -31,7 +31,7 @@ class ManageSemester extends Controller
 
     public function GetSemester(Request $request){
 
-        $perPage = $request->input('perPage', 5);
+        $perPage = $request->input('per_page', 5);
         $search = $request->input('search');
         $page = $request->input('page', 1);
         
@@ -50,7 +50,7 @@ class ManageSemester extends Controller
                 if ($search) {
                     $query->search($search);// jika ada pencarian
                 }
-
+                $query->orderBy('created_at', 'desc');
                 $getSemester = $query->paginate($perPage);
 
                 if ($this->useCache) {//set ke redis
@@ -89,7 +89,7 @@ class ManageSemester extends Controller
             ]);
 
             if ($this->useCache) {
-                Redis::del(Redis::keys('search_semester:*'));
+                $this->deleteSearchSemester('search_semester:*');
             }
             
             GLog::AddLog('success input semester', $request->all(), ""); 
@@ -127,7 +127,7 @@ class ManageSemester extends Controller
                 $semester->save();
 
                 if ($this->useCache) {
-                    Redis::del(Redis::keys('search_semester:*'));
+                    $this->deleteSearchSemester('search_semester:*');
                 }
 
                 GLog::AddLog('success updated semester', $request->all(), ""); 
@@ -171,5 +171,15 @@ class ManageSemester extends Controller
         return $validator;
     }
 
+
+    protected function deleteSearchSemester($pattern)
+    {
+        $keys = Redis::keys($pattern);
+        foreach ($keys as $key) {
+            // Remove the "laravel_database" prefix
+            $newKey = str_replace('laravel_database_', '', $key);
+            Redis::del($newKey);
+        }
+    }
 
 }
