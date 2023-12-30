@@ -1,0 +1,42 @@
+version: '3.5'
+services:
+  #PHP Service
+  etp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: etp
+    env_file:
+      - .env
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
+    working_dir: /var/www
+    volumes:
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - efo_networks
+  # Nginx Service
+  webserver_etp:
+    image: nginx:alpine
+    container_name: webserver_etp
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8889:8889"
+    volumes:
+     - ./:/var/www
+     - ./nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      efo_networks:
+        aliases:
+          - service_web
+    command: [nginx-debug, '-g', 'daemon off;']
+  # POSTGRES CONTAINER
+#Docker Networks
+networks:
+  efo_networks:
+    name: efo_networks
+    external: true

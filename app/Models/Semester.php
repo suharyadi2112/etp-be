@@ -12,7 +12,7 @@ class Semester extends Model
 
     protected $primaryKey = 'id';
     public $incrementing = false;
-    protected $table = 'semester';
+    protected $table = 'a_semester';
 
    protected $fillable = [
         'id',
@@ -31,5 +31,16 @@ class Semester extends Model
         static::creating(function ($model) {
             $model->id = Uuid::uuid4()->toString();
         });
+    }
+
+    public function scopeSearch($query, $search)
+    {
+        if ($search) {
+            return $query->where('semester_name', 'LIKE', "%$search%")
+                         ->orWhere('academic_year', 'LIKE', "%$search%")
+                         ->orWhere('active_status', 'LIKE', "%$search%");
+        }
+
+        return $query;
     }
 }
