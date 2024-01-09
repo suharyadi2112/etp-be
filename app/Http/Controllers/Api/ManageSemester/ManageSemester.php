@@ -71,6 +71,12 @@ class ManageSemester extends Controller
     public function StoreSemester(Request $request){
 
         DB::beginTransaction();
+        
+        if($request->active_status){ //assign active-status
+            $request->merge(['active_status' => 'Active']);
+        }else{
+            $request->merge(['active_status' => 'Non-Active']);
+        }
 
         $validator = $this->validateSemester($request, 'insert');
         if ($validator->fails()) {
@@ -148,12 +154,13 @@ class ManageSemester extends Controller
     //-----------
     private function validateSemester(Request $request, $action = 'insert')// insert is default
     {
+
         $validator = Validator::make($request->all(), [
             'semester_name' => 'required|string|max:255',
             'academic_year' => 'required|string|max:20',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'active_status' => 'required|in:Active,Non-Active',
+            'active_status' => 'in:Active,Non-Active',
             'description' => 'nullable|string',
         ]);
         $validator->after(function ($validator) use ($request, $action) {
