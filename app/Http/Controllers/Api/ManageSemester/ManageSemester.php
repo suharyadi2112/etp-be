@@ -65,7 +65,18 @@ class ManageSemester extends Controller
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }
+    }
 
+    public function GetSemesterById($id){
+        
+        try {
+            $data = Semester::find($id);
+            GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
+            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $data], 200);
+        } catch (\Exception $e) {
+            GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
     }
 
     public function StoreSemester(Request $request){
