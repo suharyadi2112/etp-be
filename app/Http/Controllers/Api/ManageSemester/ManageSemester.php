@@ -125,8 +125,13 @@ class ManageSemester extends Controller
 
     public function UpdateSemester($idSemester, Request $request){
 
-        try {
+        if($request->active_status){ //assign active-status
+            $request->merge(['active_status' => 'Active']);
+        }else{
+            $request->merge(['active_status' => 'Non-Active']);
+        }
 
+        try {
             $request->merge(['id' => $idSemester]);//merge id to request for validation
             $validator = $this->validateSemester($request, 'update');
 
