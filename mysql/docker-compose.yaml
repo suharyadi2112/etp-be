@@ -12,3 +12,4 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
       - "33069:3306"
+    env_file: ../.env
