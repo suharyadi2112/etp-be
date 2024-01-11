@@ -42,6 +42,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     //manage semester
     Route::post('store_semester', [ManageSemester::class, 'StoreSemester']);
     Route::get('get_semester', [ManageSemester::class, 'GetSemester']);
+    Route::get('get_semester/{id}', [ManageSemester::class, 'GetSemesterById']);
     Route::put('update_semester/{id}', [ManageSemester::class, 'UpdateSemester']);
 
     //manage mata_pelajaran

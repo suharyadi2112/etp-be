@@ -65,12 +65,29 @@ class ManageSemester extends Controller
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }
+    }
 
+    public function GetSemesterById($id){
+        
+        try {
+            $data = Semester::find($id);
+            GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
+            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $data], 200);
+        } catch (\Exception $e) {
+            GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
     }
 
     public function StoreSemester(Request $request){
 
         DB::beginTransaction();
+        
+        if($request->active_status){ //assign active-status
+            $request->merge(['active_status' => 'Active']);
+        }else{
+            $request->merge(['active_status' => 'Non-Active']);
+        }
 
         $validator = $this->validateSemester($request, 'insert');
         if ($validator->fails()) {
@@ -108,8 +125,13 @@ class ManageSemester extends Controller
 
     public function UpdateSemester($idSemester, Request $request){
 
-        try {
+        if($request->active_status){ //assign active-status
+            $request->merge(['active_status' => 'Active']);
+        }else{
+            $request->merge(['active_status' => 'Non-Active']);
+        }
 
+        try {
             $request->merge(['id' => $idSemester]);//merge id to request for validation
             $validator = $this->validateSemester($request, 'update');
 
@@ -148,12 +170,13 @@ class ManageSemester extends Controller
     //-----------
     private function validateSemester(Request $request, $action = 'insert')// insert is default
     {
+
         $validator = Validator::make($request->all(), [
             'semester_name' => 'required|string|max:255',
             'academic_year' => 'required|string|max:20',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'active_status' => 'required|in:Active,Non-Active',
+            'active_status' => 'in:Active,Non-Active',
             'description' => 'nullable|string',
         ]);
         $validator->after(function ($validator) use ($request, $action) {
