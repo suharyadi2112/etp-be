@@ -6,18 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\Auth;
 use Yajra\Datatables\Datatables;
 use Spatie\Permission\Models\Role;
 use App\Helpers\Helper as GLog;
-
-//spatie
-use Spatie\Permission\Models\Permission;
-
-//model
-use App\Models\User;
 
 class ManageRoles extends Controller
 {

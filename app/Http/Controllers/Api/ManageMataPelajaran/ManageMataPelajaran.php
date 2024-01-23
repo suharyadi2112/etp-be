@@ -8,16 +8,10 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\Auth;
-use Spatie\Permission\Models\Role;
 use App\Helpers\Helper as GLog;
-//spatie
-use Spatie\Permission\Models\Permission;
 //model
 use App\Models\MataPelajaran;
-use App\Models\User;
 
 class ManageMataPelajaran extends Controller
 {
@@ -30,19 +24,33 @@ class ManageMataPelajaran extends Controller
         $this->useExp = env('USE_EXPIRED', 3600); //setup redis
     }
 
-    public function GetMatPelajaran(){
+    public function GetMatPelajaran(Request $request){
+
+        $perPage = $request->input('per_page', 5);
+        $search = $request->input('search');
+        $page = $request->input('page', 1);
 
         try {
+
+            $cacheKey = 'search_matapelajaran:' . md5($search . $perPage . $page);
             $getMatPelajaran = false;
-            if ($this->useCache) { //cache
-                $getMatPelajaran = json_decode(Redis::get('get_all_mata_pelajaran'),false);
+
+            if ($this->useCache) {
+                $getMatPelajaran = json_decode(Redis::get($cacheKey), false);
             }
 
             if (!$getMatPelajaran || !$this->useCache) {
-                $getMatPelajaran = MataPelajaran::all();
-                if ($this->useCache) {
-                    Redis::setex('get_all_mata_pelajaran', $this->useExp, $getMatPelajaran);
+                $query = MataPelajaran::query();
+
+                if ($search) {
+                    $query->search($search);// jika ada pencarian
                 }
+                $query->orderBy('created_at', 'desc');
+                $getMatPelajaran = $query->paginate($perPage);
+
+                if ($this->useCache) {//set ke redis
+                    Redis::setex($cacheKey, $this->useExp, json_encode($getMatPelajaran));
+                } 
             }
 
             GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
@@ -65,15 +73,16 @@ class ManageMataPelajaran extends Controller
         }
 
         try {
+            $codeMataPelajaran = $this->generateCodeMataPelajaran($request->education_level);
             MataPelajaran::create([
-                'subject_name' => $request->input('subject_name'),
+                'subject_name' => strtolower($request->input('subject_name')),
                 'subject_description' => $request->input('subject_description'),
                 'education_level' => $request->input('education_level'),
-                'subject_code' => $request->input('subject_code'),
+                'subject_code' => $codeMataPelajaran,
             ]);
 
             if ($this->useCache) {
-                Redis::del('get_all_mata_pelajaran');
+                $this->deleteSearchMataPelajaran('search_matapelajaran:*');
             }
             
             GLog::AddLog('success input mata pelajaran', $request->all(), ""); 
@@ -87,7 +96,7 @@ class ManageMataPelajaran extends Controller
     }
 
     public function UpdateMatPelajaran ($idMatPel, Request $request){
-
+        
         try {
 
             $request->merge(['id' => $idMatPel]);//merge id to request for validation
@@ -96,8 +105,9 @@ class ManageMataPelajaran extends Controller
             if ($validator->fails()) {
                 throw new ValidationException($validator);
             }
-
+            
             DB::transaction(function () use ($request, $idMatPel) {
+
                 $matPelajran = MataPelajaran::find($idMatPel);
 
                 if (!$matPelajran) {
@@ -158,30 +168,54 @@ class ManageMataPelajaran extends Controller
 
     }
 
+    public function GetMatPelajaranById($id){
+        try {
+            $data = MataPelajaran::find($id);
+            GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
+            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $data], 200);
+        } catch (\Exception $e) {
+            GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
+    }
+
     //-----------
     private function validateMatPelajaran(Request $request, $action = 'insert')// insert is default
-    {
+    {   
         $validator = Validator::make($request->all(), [
             'subject_name' => 'required|string|max:100',
             'subject_description' => 'nullable|string',
             'education_level' => 'required|string',
-            'subject_code' => 'required|string',
+            'subject_code' => 'string',
         ]);
 
         //extend validator, based on action method
         if ($action === 'insert') {
             $validator->addRules([
-                'subject_name' => 'unique:a_mata_pelajaran,subject_name',
-                'subject_code' => 'unique:a_mata_pelajaran,subject_code',
+                'subject_name' => 'unique:a_mata_pelajaran,subject_name,NULL,id,education_level,' . $request->input('education_level'),
             ]);
         } elseif ($action === 'update') {
             $validator->addRules([
-                'subject_name' => 'unique:a_mata_pelajaran,subject_name,' . $request->id,
-                'subject_code' => 'unique:a_mata_pelajaran,subject_code,' . $request->id,
+                'subject_name' => 'unique:a_mata_pelajaran,subject_name,' . $request->id . ',id,education_level,' . $request->input('education_level'),
             ]);
         }
-
         return $validator;
     }
+
+    //delete cache 
+    protected function deleteSearchMataPelajaran($pattern)
+    {
+        $keys = Redis::keys($pattern);
+        foreach ($keys as $key) {
+            // Remove the "laravel_database" prefix
+            $newKey = str_replace('laravel_database_', '', $key);
+            Redis::del($newKey);
+        }
+    }
+
+    protected function generateCodeMataPelajaran($selectedOption) {
+        $randomString = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 6);
+        return $selectedOption . '-' . $randomString;
+    } 
 
 }
