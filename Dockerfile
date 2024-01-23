@@ -1,6 +1,6 @@
 FROM php:8.2-fpm
 
-# Copy composer.lock and composer.json    
+# Copy composer.lock and composer.json
 COPY composer.lock composer.json /var/www/
 
 # Set working directory
@@ -20,10 +20,10 @@ RUN apt-get install libjpeg-dev --assume-yes \
 RUN apt-get install libfreetype6-dev --assume-yes \
     && apt-get clean
 RUN apt-get install libpq-dev --assume-yes \
-    && apt-get clean 
+    && apt-get clean
 RUN apt-get install libsodium-dev --assume-yes \
     && apt-get clean
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* 
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install extensions
 RUN docker-php-ext-install pdo_mysql
@@ -77,11 +77,11 @@ RUN composer install --optimize-autoloader
 
 RUN php artisan key:generate
 
-RUN php artisan passport:keys 
+#RUN php artisan passport:keys
 
 RUN php artisan migrate
 
-RUN php artisan passport:install
+#RUN php artisan passport:install
 
 RUN php artisan config:cache
 

@@ -37,4 +37,15 @@ class MataPelajaran extends Model
         });
     }
 
+    public function scopeSearch($query, $search)
+    {
+        if ($search) {
+            return $query->where('subject_name', 'LIKE', "%$search%")
+                         ->orWhere('education_level', 'LIKE', "%$search%")
+                         ->orWhere('subject_code', 'LIKE', "%$search%");
+        }
+
+        return $query;
+    }
+
 }

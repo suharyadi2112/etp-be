@@ -42,11 +42,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     //manage semester
     Route::post('store_semester', [ManageSemester::class, 'StoreSemester']);
     Route::get('get_semester', [ManageSemester::class, 'GetSemester']);
+    Route::get('get_semester/{id}', [ManageSemester::class, 'GetSemesterById']);
     Route::put('update_semester/{id}', [ManageSemester::class, 'UpdateSemester']);
 
     //manage mata_pelajaran
     Route::post('store_mata_pelajaran', [ManageMataPelajaran::class, 'StoreMatPelajaran']);
     Route::get('get_mata_pelajaran', [ManageMataPelajaran::class, 'GetMatPelajaran']);
+    Route::get('get_mata_pelajaran/{id}', [ManageMataPelajaran::class, 'GetMatPelajaranById']);
     Route::put('update_mata_pelajaran/{id}', [ManageMataPelajaran::class, 'UpdateMatPelajaran']);
     Route::delete('del_mata_pelajaran/{id}', [ManageMataPelajaran::class, 'DelMatPelajaran']);
 

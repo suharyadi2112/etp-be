@@ -39,4 +39,4 @@ services:
 networks:
   efo_networks:
     name: efo_networks
-    external: true
+    external: false

@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('a_mata_pelajaran', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('subject_name', 100)->unique()->notNullable(); // Nama mata pelajaran 
+            $table->string('subject_name', 100)->notNullable(); // Nama mata pelajaran 
             $table->text('subject_description')->nullable(); // Deskripsi mata pelajaran
             $table->string('education_level')->nullable(); // Tingkat pendidikan
             $table->string('subject_code')->unique()->nullable(); // Kode mata pelajaran
