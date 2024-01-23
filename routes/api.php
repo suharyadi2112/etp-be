@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ManageRoles\ManageRoles;
 use App\Http\Controllers\Api\ManageSemester\ManageSemester;
 use App\Http\Controllers\Api\ManageRoles\ManagePermission;
 use App\Http\Controllers\Api\ManageMataPelajaran\ManageMataPelajaran;
+use App\Http\Controllers\Api\ManageBaseMataPelajaran\ManageBaseMataPelajaran;
 
 /*
 |--------------------------------------------------------------------------
@@ -51,5 +52,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('get_mata_pelajaran/{id}', [ManageMataPelajaran::class, 'GetMatPelajaranById']);
     Route::put('update_mata_pelajaran/{id}', [ManageMataPelajaran::class, 'UpdateMatPelajaran']);
     Route::delete('del_mata_pelajaran/{id}', [ManageMataPelajaran::class, 'DelMatPelajaran']);
+
+    //manage base mata_pelajaran
+    Route::get('get_base_mata_pelajaran', [ManageBaseMataPelajaran::class, 'GetBaseMataPelajaran']);
+
 
 });

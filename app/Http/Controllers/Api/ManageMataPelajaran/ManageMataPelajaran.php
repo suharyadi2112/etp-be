@@ -23,7 +23,7 @@ class ManageMataPelajaran extends Controller
         $this->useCache = env('USE_CACHE_REDIS', false); //setup redis
         $this->useExp = env('USE_EXPIRED', 3600); //setup redis
     }
-
+    
     public function GetMatPelajaran(Request $request){
 
         $perPage = $request->input('per_page', 5);
@@ -73,7 +73,7 @@ class ManageMataPelajaran extends Controller
         }
 
         try {
-            $codeMataPelajaran = $this->generateCodeMataPelajaran($request->education_level);
+            $codeMataPelajaran = $this->generateCodeMataPelajaran();
             MataPelajaran::create([
                 'subject_name' => strtolower($request->input('subject_name')),
                 'subject_description' => $request->input('subject_description'),
@@ -118,7 +118,7 @@ class ManageMataPelajaran extends Controller
                 $matPelajran->save();
 
                 if ($this->useCache) {
-                    Redis::del('get_all_mata_pelajaran');
+                    $this->deleteSearchMataPelajaran('search_matapelajaran:*');
                 }
             });
 
@@ -150,7 +150,7 @@ class ManageMataPelajaran extends Controller
                 $matPelajran->delete();//SoftDelete
 
                 if ($this->useCache) {
-                    Redis::del('get_all_mata_pelajaran');
+                    $this->deleteSearchMataPelajaran('search_matapelajaran:*');
                 }
 
                 GLog::AddLog('success delete mata pelajaran', $matPelajran->subject_name, ""); 
@@ -213,9 +213,9 @@ class ManageMataPelajaran extends Controller
         }
     }
 
-    protected function generateCodeMataPelajaran($selectedOption) {
+    protected function generateCodeMataPelajaran() {
         $randomString = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 6);
-        return $selectedOption . '-' . $randomString;
+        return $randomString;
     } 
 
 }
