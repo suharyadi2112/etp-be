@@ -7,12 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Ramsey\Uuid\Uuid;
 
-class MataPelajaran extends Model
+class BaseMataPelajaran extends Model
 {
-    use HasFactory;
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
-    protected $table = 'a_mata_pelajaran'; // Nama tabel sesuai dengan skema
+    protected $table = 'a_base_mata_pelajaran'; // Nama tabel sesuai dengan skema
 
     protected $primaryKey = 'id'; // Kolom primary key
 
@@ -22,17 +21,14 @@ class MataPelajaran extends Model
 
     protected $fillable = [
         'id',
-        'subject_name',
-        'subject_description',
-        'education_level',
-        'subject_code',
+        'base_subject_name',
     ];
-     
-    public function basematapelajaran()
-    {
-        return $this->belongsTo(BaseMataPelajaran::class, 'subject_name');
-    }
 
+    public function matapelajaran()
+    {
+        return $this->hasMany(MataPelajaran::class, 'subject_name', 'id');
+    }
+   
     protected static function boot()
     {
         parent::boot();
@@ -45,12 +41,9 @@ class MataPelajaran extends Model
     public function scopeSearch($query, $search)
     {
         if ($search) {
-            return $query->where('subject_name', 'LIKE', "%$search%")
-                         ->orWhere('education_level', 'LIKE', "%$search%")
-                         ->orWhere('subject_code', 'LIKE', "%$search%");
+            return $query->where('base_subject_name', 'LIKE', "%$search%");
         }
 
         return $query;
     }
-
 }
