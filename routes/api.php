@@ -55,6 +55,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     //manage base mata_pelajaran
     Route::get('get_base_mata_pelajaran', [ManageBaseMataPelajaran::class, 'GetBaseMataPelajaran']);
+    Route::post('store_base_mata_pelajaran', [ManageBaseMataPelajaran::class, 'StoreBaseMataPelajaran']);
+    Route::put('update_base_mata_pelajaran/{id}', [ManageBaseMataPelajaran::class, 'UpdateBaseMataPelajaran']);
+    Route::delete('del_base_mata_pelajaran/{id}', [ManageBaseMataPelajaran::class, 'DelBaseMataPelajaran']);
+    Route::get('get_base_mata_pelajaran/{id}', [ManageBaseMataPelajaran::class, 'GetBaseMataPelajaranById']);
 
 
 });
