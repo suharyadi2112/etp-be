@@ -40,7 +40,8 @@ class ManageMataPelajaran extends Controller
             }
 
             if (!$getMatPelajaran || !$this->useCache) {
-                $query = MataPelajaran::query();
+                $queryy = MataPelajaran::query();
+                $query = $queryy->with('basematapelajaran'); 
 
                 if ($search) {
                     $query->search($search);// jika ada pencarian
@@ -108,7 +109,7 @@ class ManageMataPelajaran extends Controller
             
             DB::transaction(function () use ($request, $idMatPel) {
 
-                $matPelajran = MataPelajaran::find($idMatPel);
+                $matPelajran = MataPelajaran::with('basematapelajaran')->find($idMatPel);
 
                 if (!$matPelajran) {
                     throw new \Exception('Mata pelajaran not found');
@@ -170,7 +171,7 @@ class ManageMataPelajaran extends Controller
 
     public function GetMatPelajaranById($id){
         try {
-            $data = MataPelajaran::find($id);
+            $data = MataPelajaran::with('basematapelajaran')->find($id);
             GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
             return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $data], 200);
         } catch (\Exception $e) {
