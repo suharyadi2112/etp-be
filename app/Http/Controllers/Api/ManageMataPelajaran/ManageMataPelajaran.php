@@ -66,34 +66,51 @@ class ManageMataPelajaran extends Controller
 
     public function StoreMatPelajaran(Request $request){
 
-        $validator = $this->validateMatPelajaran($request, 'insert');
+        DB::beginTransaction();
 
-        if ($validator->fails()) {
-            GLog::AddLog('fails input mata pelajaran', $validator->errors(), "alert"); 
-            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
+        $cekDelData = MataPelajaran::withTrashed()->where([ //get data dgn soft delete
+            ['subject_name', '=', $request->subject_name],
+            ['education_level', '=', $request->education_level]
+        ])->first();
+        
+        if ($cekDelData && ($cekDelData['deleted_at'] == null)) {//jika sudah di softdelete abaikan
+            $validator = $this->validateMatPelajaran($request, 'insert');
+            if ($validator->fails()) {
+                GLog::AddLog('fails input mata pelajaran', $validator->errors(), "alert"); 
+                return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
+            }
         }
 
         try {
-            $codeMataPelajaran = $this->generateCodeMataPelajaran();
-            MataPelajaran::create([
-                'subject_name' => strtolower($request->input('subject_name')),
-                'subject_description' => $request->input('subject_description'),
-                'education_level' => $request->input('education_level'),
-                'subject_code' => $codeMataPelajaran,
-            ]);
 
+            if ($cekDelData && ($cekDelData['deleted_at'] != null)) {
+                $cekDelData->restore();//restore softdelete
+                GLog::AddLog('success restore softdelete mata pelajaran', $request->all(), ""); 
+            }else{
+                $codeMataPelajaran = $this->generateCodeMataPelajaran();
+
+                MataPelajaran::create([
+                    'subject_name' => strtolower($request->input('subject_name')),
+                    'subject_description' => $request->input('subject_description'),
+                    'education_level' => $request->input('education_level'),
+                    'subject_code' => $codeMataPelajaran,
+                ]);
+
+                GLog::AddLog('success input mata pelajaran', $request->all(), ""); 
+            }
+
+            DB::commit();
             if ($this->useCache) {
                 $this->deleteSearchMataPelajaran('search_matapelajaran:*');
             }
-            
-            GLog::AddLog('success input mata pelajaran', $request->all(), ""); 
             return response()->json(["status"=> "success","message"=> "Data successfully stored", "data" => $request->all()], 200);
 
         } catch (\Exception $e) {
+
+            DB::rollBack();
             GLog::AddLog('fails input mata pelajaran to db', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }
-
     }
 
     public function UpdateMatPelajaran ($idMatPel, Request $request){
