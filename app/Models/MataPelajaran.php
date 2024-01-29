@@ -23,6 +23,7 @@ class MataPelajaran extends Model
     protected $fillable = [
         'id',
         'subject_name',
+        'base_subject_name',
         'subject_description',
         'education_level',
         'subject_code',
