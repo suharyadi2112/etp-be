@@ -13,9 +13,11 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('a_base_mata_pelajaran', function (Blueprint $table) {
+        Schema::create('a_base_kelas', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('base_subject_name', 200)->notNullable();
+            $table->string('nama_kelas', 200)->notNullable();
+            $table->string('ruang_kelas')->nullable();
+            $table->longText('deskripsi')->nullable();
             $table->timestamps();
             $table->softDeletes(); // deleted_at
         });
@@ -28,6 +30,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('a_base_mata_pelajaran');
+        Schema::dropIfExists('a_base_kelas');
     }
 };
