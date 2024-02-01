@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ManageSemester\ManageSemester;
 use App\Http\Controllers\Api\ManageRoles\ManagePermission;
 use App\Http\Controllers\Api\ManageMataPelajaran\ManageMataPelajaran;
 use App\Http\Controllers\Api\ManageBaseMataPelajaran\ManageBaseMataPelajaran;
+use App\Http\Controllers\Api\ManageBaseKelas\ManageBaseKelas;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,5 +61,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('del_base_mata_pelajaran/{id}', [ManageBaseMataPelajaran::class, 'DelBaseMataPelajaran']);
     Route::get('get_base_mata_pelajaran/{id}', [ManageBaseMataPelajaran::class, 'GetBaseMataPelajaranById']);
 
+    //manage base kelas
+    Route::get('get_base_kelas', [ManageBaseKelas::class, 'GetBaseKelas']);
+    Route::post('store_base_kelas', [ManageBaseKelas::class, 'StoreBaseKelas']);
+    Route::put('update_base_kelas/{id}', [ManageBaseKelas::class, 'UpdateBaseKelas']);
+    Route::delete('del_base_kelas/{id}', [ManageBaseKelas::class, 'DelBaseKelas']);
+    Route::get('get_base_kelas/{id}', [ManageBaseKelas::class, 'GetBaseKelasByID']);
 
 });

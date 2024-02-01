@@ -73,7 +73,7 @@ class ManageMataPelajaran extends Controller
             ['education_level', '=', $request->education_level]
         ])->first();
         
-        if ($cekDelData && ($cekDelData['deleted_at'] == null)) {//jika sudah di softdelete abaikan
+        if ($cekDelData && $cekDelData['deleted_at'] == null) {//jika sudah di softdelete abaikan
             $validator = $this->validateMatPelajaran($request, 'insert');
             if ($validator->fails()) {
                 GLog::AddLog('fails input mata pelajaran', $validator->errors(), "alert"); 
@@ -83,7 +83,7 @@ class ManageMataPelajaran extends Controller
 
         try {
 
-            if ($cekDelData && ($cekDelData['deleted_at'] != null)) {
+            if ($cekDelData && $cekDelData['deleted_at'] != null) {
                 $cekDelData->restore();//restore softdelete
                 GLog::AddLog('success restore softdelete mata pelajaran', $request->all(), ""); 
             }else{
@@ -132,7 +132,7 @@ class ManageMataPelajaran extends Controller
                     throw new \Exception('Mata pelajaran not found');
                 }
 
-                $matPelajran->fill($request->all());
+                $matPelajran->fill(array_map('strtolower',$request->all()));
                 $matPelajran->save();
 
                 if ($this->useCache) {

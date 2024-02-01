@@ -76,7 +76,7 @@ class ManageBaseMataPelajaran extends Controller
         }
 
         try {
-            if ($cekDelData && ($cekDelData['deleted_at'] != null)) {
+            if ($cekDelData && $cekDelData['deleted_at'] != null) {
                 $cekDelData->restore();
                 GLog::AddLog('success restore base mata pelajaran', $request->all(), ""); 
             }else{
