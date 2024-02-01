@@ -62,26 +62,39 @@ class ManageBaseMataPelajaran extends Controller
 
     public function StoreBaseMataPelajaran(Request $request){
 
-        $validator = $this->validateBaseMatPelajaran($request, 'insert');
-
-        if ($validator->fails()) {
-            GLog::AddLog('fails input base mata pelajaran', $validator->errors(), "alert"); 
-            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
+        DB::beginTransaction();
+        $cekDelData = BaseMataPelajaran::withTrashed()->where([ //get data dgn soft delete
+            ['base_subject_name', '=', $request->base_subject_name],
+        ])->first();
+        
+        if ($cekDelData && ($cekDelData['deleted_at'] == null)) {
+            $validator = $this->validateBaseMatPelajaran($request, 'insert');
+            if ($validator->fails()) {
+                GLog::AddLog('fails input base mata pelajaran', $validator->errors(), "alert"); 
+                return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
+            }
         }
 
         try {
-            BaseMataPelajaran::create([
-                'base_subject_name' => strtolower($request->input('base_subject_name')),
-            ]);
-
+            if ($cekDelData && $cekDelData['deleted_at'] != null) {
+                $cekDelData->restore();
+                GLog::AddLog('success restore base mata pelajaran', $request->all(), ""); 
+            }else{
+                BaseMataPelajaran::create([
+                    'base_subject_name' => strtolower($request->input('base_subject_name')),
+                ]);
+                GLog::AddLog('success input base mata pelajaran', $request->all(), ""); 
+            }
+            
+            DB::commit();
             if ($this->useCache) {
                 $this->deleteSearchBaseMataPelajaran('search_basematapelajaran:*');
             }
-            
-            GLog::AddLog('success input base mata pelajaran', $request->all(), ""); 
             return response()->json(["status"=> "success","message"=> "Data successfully stored", "data" => $request->all()], 200);
 
         } catch (\Exception $e) {
+            
+            DB::rollBack();
             GLog::AddLog('fails input base mata pelajaran to db', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }
