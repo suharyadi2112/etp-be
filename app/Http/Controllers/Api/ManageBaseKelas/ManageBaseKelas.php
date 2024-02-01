@@ -65,7 +65,6 @@ class ManageBaseKelas extends Controller
         DB::beginTransaction();
         $cekDelData = BaseKelas::withTrashed()->where([ //get data soft delete
             ['nama_kelas', '=', $request->nama_kelas],
-            ['ruang_kelas', '=', $request->ruang_kelas],
         ])->first();
 
         if ($cekDelData && $cekDelData['deleted_at'] == null) {

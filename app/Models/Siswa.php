@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Ramsey\Uuid\Uuid;
 
-class BaseKelas extends Model
+class Siswa extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'a_base_kelas'; // Nama tabel sesuai dengan skema
+    protected $table = 'a_siswa'; // Nama tabel sesuai dengan skema
 
     protected $primaryKey = 'id'; // Kolom primary key
 
@@ -21,14 +21,24 @@ class BaseKelas extends Model
 
     protected $fillable = [
         'id',
-        'nama_kelas',
-        'ruang_kelas',
-        'deskripsi',
+        'id_kelas',
+        'nis',
+        'nama',
+        'gender',
+        'birth_date',
+        'birth_place',
+        'address',
+        'phone_number',
+        'status',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        
     ];
 
-    public function siswa()
+    public function basekelas()
     {
-        return $this->hasMany(Siswa::class, 'id', 'id_kelas');
+        return $this->belongsTo(BaseKelas::class, 'id_kelas');
     }
 
     protected static function boot()
@@ -43,10 +53,12 @@ class BaseKelas extends Model
     public function scopeSearch($query, $search)
     {
         if ($search) {
-            return $query->where('nama_kelas', 'LIKE', "%$search%")
-                         ->orWhere('ruang_kelas', 'LIKE', "%$search%");
+            return $query->where('nis', 'LIKE', "%$search%")
+                         ->orWhere('nama', 'LIKE', "%$search%")
+                         ->orWhere('phone_number', 'LIKE', "%$search%")
+                         ->orWhere('gender', 'LIKE', "%$search%");
         }
+
         return $query;
     }
-
 }
