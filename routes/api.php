@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ManageRoles\ManagePermission;
 use App\Http\Controllers\Api\ManageMataPelajaran\ManageMataPelajaran;
 use App\Http\Controllers\Api\ManageBaseMataPelajaran\ManageBaseMataPelajaran;
 use App\Http\Controllers\Api\ManageBaseKelas\ManageBaseKelas;
+use App\Http\Controllers\Api\ManageSiswa\ManageSiswa;
 
 /*
 |--------------------------------------------------------------------------
@@ -67,5 +68,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('update_base_kelas/{id}', [ManageBaseKelas::class, 'UpdateBaseKelas']);
     Route::delete('del_base_kelas/{id}', [ManageBaseKelas::class, 'DelBaseKelas']);
     Route::get('get_base_kelas/{id}', [ManageBaseKelas::class, 'GetBaseKelasByID']);
+
+    //manage siswa
+    Route::get('get_siswa', [ManageSiswa::class, 'GetSiswa']);
+    // Route::post('store_base_kelas', [ManageBaseKelas::class, 'StoreBaseKelas']);
+    // Route::put('update_base_kelas/{id}', [ManageBaseKelas::class, 'UpdateBaseKelas']);
+    // Route::delete('del_base_kelas/{id}', [ManageBaseKelas::class, 'DelBaseKelas']);
+    // Route::get('get_base_kelas/{id}', [ManageBaseKelas::class, 'GetBaseKelasByID']);
 
 });
