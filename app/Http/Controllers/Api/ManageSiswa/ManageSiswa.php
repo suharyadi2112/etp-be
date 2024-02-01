@@ -40,7 +40,8 @@ class ManageSiswa extends Controller
             }
 
             if (!$getSiswa || !$this->useCache) {
-                $query = Siswa::query();
+                $queryy = Siswa::query();
+                $query = $queryy->with('basekelas'); 
                 if ($search) {
                     $query->search($search);// jika ada pencarian
                 }

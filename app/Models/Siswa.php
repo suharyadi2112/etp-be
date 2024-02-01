@@ -21,6 +21,7 @@ class Siswa extends Model
 
     protected $fillable = [
         'id',
+        'id_kelas',
         'nis',
         'nama',
         'gender',
@@ -29,16 +30,15 @@ class Siswa extends Model
         'address',
         'phone_number',
         'status',
-        'id_kelas',
         'created_at',
         'updated_at',
         'deleted_at',
         
     ];
 
-    public function baseKelas()
+    public function basekelas()
     {
-        return $this->belongsTo(BaseKelas::class, 'id');
+        return $this->belongsTo(BaseKelas::class, 'id_kelas');
     }
 
     protected static function boot()
