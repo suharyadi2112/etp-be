@@ -63,9 +63,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     //manage base kelas
     Route::get('get_base_kelas', [ManageBaseKelas::class, 'GetBaseKelas']);
-    // Route::post('store_base_mata_pelajaran', [ManageBaseMataPelajaran::class, 'StoreBaseMataPelajaran']);
-    // Route::put('update_base_mata_pelajaran/{id}', [ManageBaseMataPelajaran::class, 'UpdateBaseMataPelajaran']);
-    // Route::delete('del_base_mata_pelajaran/{id}', [ManageBaseMataPelajaran::class, 'DelBaseMataPelajaran']);
-    // Route::get('get_base_mata_pelajaran/{id}', [ManageBaseMataPelajaran::class, 'GetBaseMataPelajaranById']);
+    Route::post('store_base_kelas', [ManageBaseKelas::class, 'StoreBaseKelas']);
+    Route::put('update_base_kelas/{id}', [ManageBaseKelas::class, 'UpdateBaseKelas']);
+    Route::delete('del_base_kelas/{id}', [ManageBaseKelas::class, 'DelBaseKelas']);
+    Route::get('get_base_kelas/{id}', [ManageBaseKelas::class, 'GetBaseKelasByID']);
 
 });
