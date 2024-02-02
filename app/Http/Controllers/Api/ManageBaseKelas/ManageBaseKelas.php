@@ -61,32 +61,21 @@ class ManageBaseKelas extends Controller
     }
 
     public function StoreBaseKelas(Request $request){
-
-        DB::beginTransaction();
-        $cekDelData = BaseKelas::withTrashed()->where([ //get data soft delete
-            ['nama_kelas', '=', $request->nama_kelas],
-        ])->first();
-
-        if ($cekDelData && $cekDelData['deleted_at'] == null) {
-            $validator = $this->validateBaseKelas($request, 'insert');
-            if ($validator->fails()) {
-                GLog::AddLog('fails input base kelas', $validator->errors(), "alert"); 
-                return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
-            }
+   
+        $validator = $this->validateBaseKelas($request, 'insert');
+        if ($validator->fails()) {
+            GLog::AddLog('fails input base kelas', $validator->errors(), "alert"); 
+            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
         }
         try { 
 
-            if ($cekDelData && $cekDelData['deleted_at'] != null) {
-                $cekDelData->restore();
-                GLog::AddLog('success restore base kelas', $request->all(), ""); 
-            }else{
-                BaseKelas::create([
-                    'nama_kelas' => strtolower($request->input('nama_kelas')),
-                    'ruang_kelas' => strtolower($request->input('ruang_kelas')),
-                    'deskripsi' => $request->input('deskripsi'),
-                ]);
-                GLog::AddLog('success input base kelas', $request->all(), ""); 
-            }
+            BaseKelas::create([
+                'nama_kelas' => strtolower($request->input('nama_kelas')),
+                'ruang_kelas' => strtolower($request->input('ruang_kelas')),
+                'deskripsi' => $request->input('deskripsi'),
+            ]);
+            GLog::AddLog('success input base kelas', $request->all(), ""); 
+        
             DB::commit();
             if ($this->useCache) {
                 $this->deleteSearchBaseKelas('search_basekelas:*');
@@ -187,17 +176,25 @@ class ManageBaseKelas extends Controller
     private function validateBaseKelas(Request $request, $action = 'insert')// insert is default
     {   
         $validator = Validator::make($request->all(), [
-            'nama_kelas' => 'required|string|max:200',
+            'nama_kelas' => [
+                'required',
+                'string',
+                'max:200',
+                function ($attribute, $value, $fail) use ($request, $action) {
+                    $query = BaseKelas::withTrashed()->where('nama_kelas', $value);
+        
+                    if ($action === 'update') {
+                        $query->where('id', '!=', $request->id);
+                    }
+        
+                    $existingData = $query->first();
+        
+                    if ($existingData && !$existingData->trashed()) {
+                        $fail($attribute.' has already been taken.');
+                    }
+                },
+            ],
         ]);
-        if ($action === 'insert') {
-            $validator->addRules([
-                'nama_kelas' => 'unique:a_base_kelas,nama_kelas',
-            ]);
-        } elseif ($action === 'update') {
-            $validator->addRules([
-                'nama_kelas' => 'unique:a_base_kelas,nama_kelas,' . $request->id,
-            ]);
-        }
         return $validator;
     }
 
