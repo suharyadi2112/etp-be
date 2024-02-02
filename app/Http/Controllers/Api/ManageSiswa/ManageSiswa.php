@@ -71,8 +71,6 @@ class ManageSiswa extends Controller
             return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
         }
         
-        $query = Siswa::withTrashed()->where('nis', $request->nis)->first();
-
         try {
             Siswa::create([
                 'id_kelas' => $request->input('id_kelas'),
@@ -119,7 +117,7 @@ class ManageSiswa extends Controller
      
 
         $validator->after(function ($validator) use ($request, $action) {
-            $query = Siswa::where('nis', $request->input('nis'));
+            $query = Siswa::withTrashed()->where('nis', $request->input('nis'));
             
             if ($action === 'update') {
                 $query->where('id', '!=', $request->input('id'));

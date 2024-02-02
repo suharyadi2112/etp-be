@@ -193,7 +193,7 @@ class ManageSemester extends Controller
 
         $validator->after(function ($validator) use ($request, $action) {
             if ($request->input('active_status') === 'Active') {
-                $query = Semester::where('active_status', 'Active');
+                $query = Semester::withTrashed()->where('active_status', 'Active');
                 
                 if ($action === 'update') {
                     $query->where('id', '!=', $request->input('id'));
