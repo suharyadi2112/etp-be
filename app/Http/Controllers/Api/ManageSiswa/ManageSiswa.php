@@ -62,4 +62,93 @@ class ManageSiswa extends Controller
         }
     }
 
+    public function StoreKelas(Request $request){
+
+        DB::beginTransaction();
+        $cekDelData = Siswa::withTrashed()->where([
+            ['nis', '=', $request->nis],
+        ])->first();
+        
+        if ($cekDelData && $cekDelData['deleted_at'] == null) {
+            $validator = $this->validateSiswa($request, 'insert');
+            if ($validator->fails()) {
+                GLog::AddLog('fails input siswa', $validator->errors(), "alert"); 
+                return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
+            }
+        }
+
+        try {
+            if ($cekDelData && $cekDelData['deleted_at'] != null) {
+                $cekDelData->restore();
+                GLog::AddLog('success restore siswa', $request->all(), ""); 
+            }else{
+                Siswa::create([
+                    'id_kelas' => $request->input('id_kelas'),
+                    'nis' => $request->input('nis'),
+                    'nama' => strtolower($request->input('nama')),
+                    'gender' => $request->input('gender'),
+                    'birth_date' => $request->input('birth_date'),
+                    'birth_place' => $request->input('birth_place'),
+                    'address' => $request->input('address'),
+                    'phone_number' => $request->input('phone_number'),
+                    'status' => $request->input('status'),
+                ]);
+                GLog::AddLog('success input siswa', $request->all(), ""); 
+            }
+            
+            DB::commit();
+            if ($this->useCache) {
+                $this->deleteSearchSiswa('search_siswa:*');
+            }
+            return response()->json(["status"=> "success","message"=> "Data successfully stored", "data" => $request->all()], 200);
+
+        } catch (\Exception $e) {
+            
+            DB::rollBack();
+            GLog::AddLog('fails input siswa to db', $e->getMessage(), "error"); 
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
+    }
+
+
+    //-----------
+    private function validateSiswa(Request $request, $action = 'insert')// insert is default
+    {   
+        $validator = Validator::make($request->all(), [
+            'id_kelas' => 'required|exists:a_base_kelas,id',
+            'nis' => 'required|string|max:200|unique:siswa,nis',
+            'nama' => 'required|string|max:200',
+            'gender' => 'required|string|max:200',
+            'birth_date' => 'required|date',
+            'birth_place' => 'required|string|max:1000',
+            'address' => 'string|max:1000|nullable',
+            'phone_number' => 'string|max:20|nullable',
+            'status' => 'string|max:10',
+        ]);
+        
+        //extend validator, based on action method
+        if ($action === 'insert') {
+            $validator->addRules([
+                'base_subject_name' => 'unique:a_base_mata_pelajaran,base_subject_name',
+            ]);
+        } elseif ($action === 'update') {
+            $validator->addRules([
+                'base_subject_name' => 'unique:a_base_mata_pelajaran,base_subject_name,' . $request->id,
+            ]);
+        }
+        return $validator;
+    }
+
+    //delete cache 
+    protected function deleteSearchSiswa($pattern)
+    {
+        $keys = Redis::keys($pattern);
+        foreach ($keys as $key) {
+            // Remove the "laravel_database" prefix
+            $newKey = str_replace('laravel_database_', '', $key);
+            Redis::del($newKey);
+        }
+    }
+
+
 }

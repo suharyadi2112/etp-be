@@ -71,7 +71,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     //manage siswa
     Route::get('get_siswa', [ManageSiswa::class, 'GetSiswa']);
-    // Route::post('store_base_kelas', [ManageBaseKelas::class, 'StoreBaseKelas']);
+    Route::post('store_siswa', [ManageSiswa::class, 'StoreKelas']);
     // Route::put('update_base_kelas/{id}', [ManageBaseKelas::class, 'UpdateBaseKelas']);
     // Route::delete('del_base_kelas/{id}', [ManageBaseKelas::class, 'DelBaseKelas']);
     // Route::get('get_base_kelas/{id}', [ManageBaseKelas::class, 'GetBaseKelasByID']);
