@@ -76,13 +76,13 @@ class ManageSemester extends Controller
     public function StoreSemester(Request $request){
 
         DB::beginTransaction();
-        
-        if($request->active_status){ //assign active-status
-            $request->merge(['active_status' => 'Active']);
-        }else{
-            $request->merge(['active_status' => 'Non-Active']);
-        }
 
+        if($request->active_status){
+            $request->merge(['active_status' => $request->active_status]);
+        }else{
+            return response()->json(["status"=> "fail", "message"=>  "status not found", "data" => null], 400);
+        }
+      
         $validator = $this->validateSemester($request, 'insert');
         if ($validator->fails()) {
             GLog::AddLog('fails input semester', $validator->errors(), "alert"); 
@@ -119,10 +119,10 @@ class ManageSemester extends Controller
 
     public function UpdateSemester($idSemester, Request $request){
 
-        if($request->active_status){ //assign active-status
-            $request->merge(['active_status' => 'Active']);
+        if($request->active_status){
+            $request->merge(['active_status' => $request->active_status]);
         }else{
-            $request->merge(['active_status' => 'Non-Active']);
+            return response()->json(["status"=> "fail", "message"=>  "status not found", "data" => null], 400);
         }
 
         try {
@@ -166,13 +166,31 @@ class ManageSemester extends Controller
     {
 
         $validator = Validator::make($request->all(), [
-            'semester_name' => 'required|string|max:255',
+            'semester_name' => ['required','string','max:255',
+
+                function ($attribute, $value, $fail) use ($request, $action) {
+                    $query = Semester::withTrashed()
+                    ->where('semester_name', $value)
+                    ->where('academic_year', $request->academic_year);
+
+                    if ($action === 'update') {
+                        $query->where('id', '!=', $request->id);
+                    }
+                    
+                    $existingData = $query->first();
+
+                    if ($existingData && !$existingData->trashed()) {
+                        $fail('Semester dan Tahun ajar has already been taken.');
+                    }
+                },
+            ],
             'academic_year' => 'required|string|max:20',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'active_status' => 'in:Active,Non-Active',
             'description' => 'nullable|string',
         ]);
+
         $validator->after(function ($validator) use ($request, $action) {
             if ($request->input('active_status') === 'Active') {
                 $query = Semester::where('active_status', 'Active');
@@ -185,6 +203,7 @@ class ManageSemester extends Controller
                 }
             }
         });
+      
         return $validator;
     }
 

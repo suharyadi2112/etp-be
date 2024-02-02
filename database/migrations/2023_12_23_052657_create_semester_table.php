@@ -21,6 +21,7 @@ class CreateSemesterTable extends Migration
             $table->date('end_date')->nullable(false);
             $table->enum('active_status', ['Active', 'Non-Active']);
             $table->text('description')->nullable();
+            $table->softDeletes(); // deleted_at
             $table->timestamps();
         });
     }
