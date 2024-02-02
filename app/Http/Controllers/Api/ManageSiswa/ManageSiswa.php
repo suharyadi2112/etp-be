@@ -65,37 +65,28 @@ class ManageSiswa extends Controller
     public function StoreKelas(Request $request){
 
         DB::beginTransaction();
-        $cekDelData = Siswa::withTrashed()->where([
-            ['nis', '=', $request->nis],
-        ])->first();
-        
-        if ($cekDelData && $cekDelData['deleted_at'] == null) {
-            $validator = $this->validateSiswa($request, 'insert');
-            if ($validator->fails()) {
-                GLog::AddLog('fails input siswa', $validator->errors(), "alert"); 
-                return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
-            }
+        $validator = $this->validateSiswa($request, 'insert');
+        if ($validator->fails()) {
+            GLog::AddLog('fails input siswa', $validator->errors(), "alert"); 
+            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
         }
+        
+        $query = Siswa::withTrashed()->where('nis', $request->nis)->first();
 
         try {
-            if ($cekDelData && $cekDelData['deleted_at'] != null) {
-                $cekDelData->restore();
-                GLog::AddLog('success restore siswa', $request->all(), ""); 
-            }else{
-                Siswa::create([
-                    'id_kelas' => $request->input('id_kelas'),
-                    'nis' => $request->input('nis'),
-                    'nama' => strtolower($request->input('nama')),
-                    'gender' => $request->input('gender'),
-                    'birth_date' => $request->input('birth_date'),
-                    'birth_place' => $request->input('birth_place'),
-                    'address' => $request->input('address'),
-                    'phone_number' => $request->input('phone_number'),
-                    'status' => $request->input('status'),
-                ]);
-                GLog::AddLog('success input siswa', $request->all(), ""); 
-            }
-            
+            Siswa::create([
+                'id_kelas' => $request->input('id_kelas'),
+                'nis' => $request->input('nis'),
+                'nama' => strtolower($request->input('nama')),
+                'gender' => strtolower($request->input('gender')),
+                'birth_date' => $request->input('birth_date'),
+                'birth_place' => $request->input('birth_place'),
+                'address' => $request->input('address'),
+                'phone_number' => $request->input('phone_number'),
+                'status' => $request->input('status'),
+            ]);
+            GLog::AddLog('success input siswa', $request->all(), ""); 
+        
             DB::commit();
             if ($this->useCache) {
                 $this->deleteSearchSiswa('search_siswa:*');
@@ -116,7 +107,7 @@ class ManageSiswa extends Controller
     {   
         $validator = Validator::make($request->all(), [
             'id_kelas' => 'required|exists:a_base_kelas,id',
-            'nis' => 'required|string|max:200|unique:siswa,nis',
+            'nis' => 'required|string|max:200',
             'nama' => 'required|string|max:200',
             'gender' => 'required|string|max:200',
             'birth_date' => 'required|date',
@@ -125,17 +116,19 @@ class ManageSiswa extends Controller
             'phone_number' => 'string|max:20|nullable',
             'status' => 'string|max:10',
         ]);
-        
-        //extend validator, based on action method
-        if ($action === 'insert') {
-            $validator->addRules([
-                'base_subject_name' => 'unique:a_base_mata_pelajaran,base_subject_name',
-            ]);
-        } elseif ($action === 'update') {
-            $validator->addRules([
-                'base_subject_name' => 'unique:a_base_mata_pelajaran,base_subject_name,' . $request->id,
-            ]);
-        }
+     
+
+        $validator->after(function ($validator) use ($request, $action) {
+            $query = Siswa::where('nis', $request->input('nis'));
+            
+            if ($action === 'update') {
+                $query->where('id', '!=', $request->input('id'));
+            }
+            if ($query->exists()) {
+                $validator->errors()->add('NIS', 'Only one NIS is allowed.');
+            }
+        });
+
         return $validator;
     }
 
