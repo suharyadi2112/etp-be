@@ -63,29 +63,18 @@ class ManageBaseMataPelajaran extends Controller
     public function StoreBaseMataPelajaran(Request $request){
 
         DB::beginTransaction();
-        $cekDelData = BaseMataPelajaran::withTrashed()->where([ //get data dgn soft delete
-            ['base_subject_name', '=', $request->base_subject_name],
-        ])->first();
         
-        if ($cekDelData && ($cekDelData['deleted_at'] == null)) {
-            $validator = $this->validateBaseMatPelajaran($request, 'insert');
-            if ($validator->fails()) {
-                GLog::AddLog('fails input base mata pelajaran', $validator->errors(), "alert"); 
-                return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
-            }
+        $validator = $this->validateBaseMatPelajaran($request, 'insert');
+        if ($validator->fails()) {
+            GLog::AddLog('fails input base mata pelajaran', $validator->errors(), "alert"); 
+            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
         }
-
         try {
-            if ($cekDelData && $cekDelData['deleted_at'] != null) {
-                $cekDelData->restore();
-                GLog::AddLog('success restore base mata pelajaran', $request->all(), ""); 
-            }else{
-                BaseMataPelajaran::create([
-                    'base_subject_name' => strtolower($request->input('base_subject_name')),
-                ]);
-                GLog::AddLog('success input base mata pelajaran', $request->all(), ""); 
-            }
-            
+            BaseMataPelajaran::create([
+                'base_subject_name' => strtolower($request->input('base_subject_name')),
+            ]);
+            GLog::AddLog('success input base mata pelajaran', $request->all(), ""); 
+        
             DB::commit();
             if ($this->useCache) {
                 $this->deleteSearchBaseMataPelajaran('search_basematapelajaran:*');
@@ -190,19 +179,24 @@ class ManageBaseMataPelajaran extends Controller
     private function validateBaseMatPelajaran(Request $request, $action = 'insert')// insert is default
     {   
         $validator = Validator::make($request->all(), [
-            'base_subject_name' => 'required|string|max:200',
+            'base_subject_name' => ['required','string','max:200',
+                function ($attribute, $value, $fail) use ($request, $action) {
+                    $query = BaseMataPelajaran::withTrashed()
+                    ->where('base_subject_name', $value);
+
+                    if ($action === 'update') {
+                        $query->where('id', '!=', $request->id);
+                    }
+                    
+                    $existingData = $query->first();
+        
+                    if ($existingData && !$existingData->trashed()) {
+                        $fail($attribute.' has already been taken.');
+                    }
+                },
+            ],
         ]);
 
-        //extend validator, based on action method
-        if ($action === 'insert') {
-            $validator->addRules([
-                'base_subject_name' => 'unique:a_base_mata_pelajaran,base_subject_name',
-            ]);
-        } elseif ($action === 'update') {
-            $validator->addRules([
-                'base_subject_name' => 'unique:a_base_mata_pelajaran,base_subject_name,' . $request->id,
-            ]);
-        }
         return $validator;
     }
 

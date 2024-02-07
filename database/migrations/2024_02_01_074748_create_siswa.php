@@ -22,7 +22,7 @@ return new class extends Migration
             $table->text('birth_place')->notNullable();
             $table->text('address')->nullable();
             $table->string('phone_number')->nullable();
-            $table->enum('status', ['Aktif', 'Nonaktif']);
+            $table->enum('status', ['Active', 'Non-Active']);
             $table->uuid('id_kelas'); // Foreign key ke tabel kelas
             $table->timestamps();
             $table->softDeletes(); // deleted_at

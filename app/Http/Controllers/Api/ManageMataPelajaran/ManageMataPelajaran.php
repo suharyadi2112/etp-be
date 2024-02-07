@@ -68,36 +68,24 @@ class ManageMataPelajaran extends Controller
 
         DB::beginTransaction();
 
-        $cekDelData = MataPelajaran::withTrashed()->where([ //get data dgn soft delete
-            ['subject_name', '=', $request->subject_name],
-            ['education_level', '=', $request->education_level]
-        ])->first();
-        
-        if ($cekDelData && $cekDelData['deleted_at'] == null) {//jika sudah di softdelete abaikan
-            $validator = $this->validateMatPelajaran($request, 'insert');
-            if ($validator->fails()) {
-                GLog::AddLog('fails input mata pelajaran', $validator->errors(), "alert"); 
-                return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
-            }
+        $validator = $this->validateMatPelajaran($request, 'insert');
+        if ($validator->fails()) {
+            GLog::AddLog('fails input mata pelajaran', $validator->errors(), "alert"); 
+            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
         }
 
         try {
 
-            if ($cekDelData && $cekDelData['deleted_at'] != null) {
-                $cekDelData->restore();//restore softdelete
-                GLog::AddLog('success restore softdelete mata pelajaran', $request->all(), ""); 
-            }else{
-                $codeMataPelajaran = $this->generateCodeMataPelajaran();
+            $codeMataPelajaran = $this->generateCodeMataPelajaran();
 
-                MataPelajaran::create([
-                    'subject_name' => strtolower($request->input('subject_name')),
-                    'subject_description' => $request->input('subject_description'),
-                    'education_level' => $request->input('education_level'),
-                    'subject_code' => $codeMataPelajaran,
-                ]);
+            MataPelajaran::create([
+                'subject_name' => strtolower($request->input('subject_name')),
+                'subject_description' => $request->input('subject_description'),
+                'education_level' => strtolower($request->input('education_level')),
+                'subject_code' => $codeMataPelajaran,
+            ]);
 
-                GLog::AddLog('success input mata pelajaran', $request->all(), ""); 
-            }
+            GLog::AddLog('success input mata pelajaran', $request->all(), ""); 
 
             DB::commit();
             if ($this->useCache) {
@@ -201,22 +189,28 @@ class ManageMataPelajaran extends Controller
     private function validateMatPelajaran(Request $request, $action = 'insert')// insert is default
     {   
         $validator = Validator::make($request->all(), [
-            'subject_name' => 'required|string|max:100',
+            'subject_name' => ['required', 'string' ,' max:100',
+                function ($attribute, $value, $fail) use ($request, $action) {
+                    $query = MataPelajaran::withTrashed()
+                    ->where('subject_name', $value)
+                    ->where('education_level', $request->education_level);
+
+                    if ($action === 'update') {
+                        $query->where('id', '!=', $request->id);
+                    }
+                    
+                    $existingData = $query->first();
+        
+                    if ($existingData && !$existingData->trashed()) {
+                        $fail($attribute.' has already been taken.');
+                    }
+                },
+            ],
             'subject_description' => 'nullable|string',
             'education_level' => 'required|string',
             'subject_code' => 'string',
         ]);
 
-        //extend validator, based on action method
-        if ($action === 'insert') {
-            $validator->addRules([
-                'subject_name' => 'unique:a_mata_pelajaran,subject_name,NULL,id,education_level,' . $request->input('education_level'),
-            ]);
-        } elseif ($action === 'update') {
-            $validator->addRules([
-                'subject_name' => 'unique:a_mata_pelajaran,subject_name,' . $request->id . ',id,education_level,' . $request->input('education_level'),
-            ]);
-        }
         return $validator;
     }
 

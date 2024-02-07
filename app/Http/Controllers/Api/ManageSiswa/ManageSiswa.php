@@ -62,4 +62,172 @@ class ManageSiswa extends Controller
         }
     }
 
+    public function StoreSiswa(Request $request){
+
+        DB::beginTransaction();
+        $validator = $this->validateSiswa($request, 'insert');
+        if ($validator->fails()) {
+            GLog::AddLog('fails input siswa', $validator->errors(), "alert"); 
+            return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
+        }
+        
+        try {
+            Siswa::create([
+                'id_kelas' => $request->input('id_kelas'),
+                'nis' => $request->input('nis'),
+                'nama' => strtolower($request->input('nama')),
+                'gender' => strtolower($request->input('gender')),
+                'birth_date' => $request->input('birth_date'),
+                'birth_place' => $request->input('birth_place'),
+                'address' => $request->input('address'),
+                'phone_number' => $request->input('phone_number'),
+                'status' => $request->input('status'),
+            ]);
+            GLog::AddLog('success input siswa', $request->all(), ""); 
+        
+            DB::commit();
+            if ($this->useCache) {
+                $this->deleteSearchSiswa('search_siswa:*');
+            }
+            return response()->json(["status"=> "success","message"=> "Data successfully stored", "data" => $request->all()], 200);
+
+        } catch (\Exception $e) {
+            
+            DB::rollBack();
+            GLog::AddLog('fails input siswa to db', $e->getMessage(), "error"); 
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
+    }
+
+
+    public function UpdateSiswa(Request $request, $idSiswa){
+
+        try {
+            $request->merge(['id' => $idSiswa]);
+            $validator = $this->validateSiswa($request, 'update');
+
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+           
+            DB::transaction(function () use ($request, $idSiswa) {
+                $Siswa = Siswa::find($idSiswa);
+
+                if (!$Siswa) {
+                    throw new \Exception('Siswa not found');
+                }
+                $Siswa->fill($request->all());
+                $Siswa->save();
+
+                if ($this->useCache) {
+                    $this->deleteSearchSiswa('search_siswa:*');
+                }
+
+                GLog::AddLog('success updated siswa', $request->all(), ""); 
+            });
+
+            return response()->json(['status' => 'success', 'message' => 'siswa updated successfully', 'data' => $request->all()], 200);
+
+        } catch (ValidationException $e) {
+            GLog::AddLog('fails update siswa validation', $e->errors(), 'alert');
+            return response()->json(['status' => 'fail', 'message' => $e->errors(), 'data' => null], 400);
+        } catch (\Exception $e) {
+            GLog::AddLog('fails update siswa', $e->getMessage(), 'alert');
+            return response()->json(['status' => 'fail', 'message' => $e->getMessage(), 'data' => null], 500);
+        }
+    }
+
+    public function DelSiswa($id){
+        
+        try {
+            $siswaName = null;
+            DB::transaction(function () use ($id, &$siswaName) {
+                $siswaData = Siswa::find($id);
+
+                if (!$siswaData) {
+                    throw new \Exception('siswa not found');
+                }
+
+                $siswaName = $siswaData->nama;
+                $siswaData->delete();//SoftDelete
+
+                if ($this->useCache) {
+                    $this->deleteSearchSiswa('search_siswa:*');
+                }
+
+                GLog::AddLog('success delete siswa', $siswaData->nama, ""); 
+            });
+
+            return response()->json(['status' => 'success', 'message' => 'siswa delete successfully', 'data' => $siswaName], 200);
+    
+        } catch (ValidationException $e) {
+            GLog::AddLog('fails delete siswa validation', $e->errors(), 'alert');
+            return response()->json(['status' => 'fail', 'message' => $e->errors(), 'data' => null], 400);
+        } catch (\Exception $e) {
+            GLog::AddLog('fails delete siswa', $e->getMessage(), 'alert');
+            return response()->json(['status' => 'fail', 'message' => $e->getMessage(), 'data' => null], 500);
+        }
+    }
+
+    public function GetSiswaByID($id){
+
+        try {
+            $data = Siswa::find($id);
+
+            if (!$data) {
+                throw new \Exception('Siswa not found');
+            }
+
+            GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
+            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $data], 200);
+        } catch (\Exception $e) {
+            GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
+
+    }
+
+
+    //-----------
+    private function validateSiswa(Request $request, $action = 'insert')// insert is default
+    {   
+        $validator = Validator::make($request->all(), [
+            'id_kelas' => 'required|exists:a_base_kelas,id',
+            'nis' => 'required|string|max:200',
+            'nama' => 'required|string|max:200',
+            'gender' => 'required|string|max:200',
+            'birth_date' => 'required|date',
+            'birth_place' => 'required|string|max:1000',
+            'address' => 'string|max:1000|nullable',
+            'phone_number' => 'string|max:20|nullable',
+            'status' => 'string|max:10|in:Active,Non-Active',
+        ]);
+     
+
+        $validator->after(function ($validator) use ($request, $action) {
+            $query = Siswa::withTrashed()->where('nis', $request->input('nis'));
+            
+            if ($action === 'update') {
+                $query->where('id', '!=', $request->input('id'));
+            }
+            if ($query->exists()) {
+                $validator->errors()->add('NIS', 'Only one NIS is allowed.');
+            }
+        });
+
+        return $validator;
+    }
+
+    //delete cache 
+    protected function deleteSearchSiswa($pattern)
+    {
+        $keys = Redis::keys($pattern);
+        foreach ($keys as $key) {
+            // Remove the "laravel_database" prefix
+            $newKey = str_replace('laravel_database_', '', $key);
+            Redis::del($newKey);
+        }
+    }
+
+
 }
