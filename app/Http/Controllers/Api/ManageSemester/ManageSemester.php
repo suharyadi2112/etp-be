@@ -78,9 +78,9 @@ class ManageSemester extends Controller
         DB::beginTransaction();
 
         if($request->active_status){
-            $request->merge(['active_status' => $request->active_status]);
+            $request->merge(['active_status' => 'Active']); //assign baru, dari from true and false
         }else{
-            return response()->json(["status"=> "fail", "message"=>  "status not found", "data" => null], 400);
+            $request->merge(['active_status' => 'Non-Active']);
         }
       
         $validator = $this->validateSemester($request, 'insert');
@@ -187,7 +187,7 @@ class ManageSemester extends Controller
             'academic_year' => 'required|string|max:20',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'active_status' => 'in:Active,Non-Active',
+            'active_status' => 'required|in:Active,Non-Active',
             'description' => 'nullable|string',
         ]);
 
