@@ -65,15 +65,7 @@ class ManageSiswa extends Controller
     public function StoreSiswa(Request $request){
 
         DB::beginTransaction();
-
-        if($request->status){
-            $request->merge(['status' => 'Active']); //assign baru, dari from true and false
-        }else{
-            $request->merge(['status' => 'Non-Active']);
-        }
-
         $validator = $this->validateSiswa($request, 'insert');
-
         if ($validator->fails()) {
             GLog::AddLog('fails input siswa', $validator->errors(), "alert"); 
             return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
@@ -201,13 +193,13 @@ class ManageSiswa extends Controller
     {   
         $validator = Validator::make($request->all(), [
             'id_kelas' => 'required|exists:a_base_kelas,id',
-            'nis' => 'required|max:200',
+            'nis' => 'required|string|max:200',
             'nama' => 'required|string|max:200',
             'gender' => 'required|string|max:200',
             'birth_date' => 'required|date',
             'birth_place' => 'required|string|max:1000',
             'address' => 'string|max:1000|nullable',
-            'phone_number' => 'max:20|nullable',
+            'phone_number' => 'string|max:20|nullable',
             'status' => 'string|max:10|in:Active,Non-Active',
         ]);
      
