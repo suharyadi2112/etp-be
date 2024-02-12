@@ -65,15 +65,14 @@ class ManageSiswa extends Controller
     public function StoreSiswa(Request $request){
 
         DB::beginTransaction();
-
         if($request->status){
             $request->merge(['status' => 'Active']); //assign baru, dari from true and false
         }else{
             $request->merge(['status' => 'Non-Active']);
         }
 
-        $validator = $this->validateSiswa($request, 'insert');
-        
+        $validator = $this->validateSiswa($request, 'insert');  
+
         if ($validator->fails()) {
             GLog::AddLog('fails input siswa', $validator->errors(), "alert"); 
             return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
@@ -201,7 +200,23 @@ class ManageSiswa extends Controller
     {   
         $validator = Validator::make($request->all(), [
             'id_kelas' => 'required|exists:a_base_kelas,id',
-            'nis' => 'required|max:200',
+            'nis' => ['required', 'max:200',
+
+                function ($attribute,$value, $fail) use ($request, $action) {
+                    $query = Siswa::withTrashed()->where('nis', $value)->where('deleted_at' , null);
+
+                    if ($action === 'update') {
+                        $query->where('id', '!=', $request->id);
+                    }
+                    
+                    $existingData = $query->count();
+
+                    if ($existingData > 0) {
+                        $fail('Nis already been taken.');
+                    }
+                },
+            ],
+
             'nama' => 'required|string|max:200',
             'gender' => 'required|string|max:200',
             'birth_date' => 'required|date',
@@ -211,18 +226,6 @@ class ManageSiswa extends Controller
             'status' => 'string|max:10|in:Active,Non-Active',
         ]);
      
-
-        $validator->after(function ($validator) use ($request, $action) {
-            $query = Siswa::withTrashed()->where('nis', $request->input('nis'));
-            
-            if ($action === 'update') {
-                $query->where('id', '!=', $request->input('id'));
-            }
-            if ($query->exists()) {
-                $validator->errors()->add('NIS', 'Only one NIS is allowed.');
-            }
-        });
-
         return $validator;
     }
 
