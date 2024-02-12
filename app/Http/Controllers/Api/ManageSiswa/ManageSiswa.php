@@ -110,6 +110,13 @@ class ManageSiswa extends Controller
     public function UpdateSiswa(Request $request, $idSiswa){
 
         try {
+            
+            if($request->status){
+                $request->merge(['status' => 'Active']); //assign baru, dari from true and false
+            }else{
+                $request->merge(['status' => 'Non-Active']);
+            }
+
             $request->merge(['id' => $idSiswa]);
             $validator = $this->validateSiswa($request, 'update');
 
