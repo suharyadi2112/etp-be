@@ -186,7 +186,7 @@ class ManageSiswa extends Controller
     public function GetSiswaByID($id){
 
         try {
-            $data = Siswa::find($id);
+            $data = Siswa::with('basekelas')->find($id);
 
             if (!$data) {
                 throw new \Exception('Siswa not found');
