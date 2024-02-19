@@ -213,9 +213,11 @@ class ManageSiswa extends Controller
                 }
 
                 if ($this->useCache) {//set ke redis
-                    Redis::setex($cacheKey, $this->useExp, json_encode($getSiswa));
+                    Redis::setex($cacheKey, $this->useExp, json_encode($getSiswa));  //except photoprofile base64
                 } 
             }
+
+            $getSiswa->makeVisible('photo_profile'); //munculkan kembali photo profile
 
             GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
             return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $getSiswa], 200);
