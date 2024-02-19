@@ -132,8 +132,6 @@ class ManageSiswa extends Controller
             $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);
             $request->merge(['photo_name_ori' => $filePhoto]); //update name ori
 
-            return response()->json($request->all());
-
             if ($validator->fails()) {
                 throw new ValidationException($validator);
             }
