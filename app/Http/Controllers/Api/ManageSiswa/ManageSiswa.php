@@ -9,10 +9,10 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Storage;
 use App\Helpers\Helper as GLog;
 //model
 use App\Models\Siswa;
-
 
 class ManageSiswa extends Controller
 {
@@ -70,8 +70,9 @@ class ManageSiswa extends Controller
         }else{
             $request->merge(['status' => 'Non-Active']);
         }
-
+     
         $validator = $this->validateSiswa($request, 'insert');  
+        $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);//get ori photo dari base64
 
         if ($validator->fails()) {
             GLog::AddLog('fails input siswa', $validator->errors(), "alert"); 
@@ -88,6 +89,14 @@ class ManageSiswa extends Controller
                 'birth_place' => $request->input('birth_place'),
                 'address' => $request->input('address'),
                 'phone_number' => $request->input('phone_number'),
+                'facebook' => $request->input('facebook'),
+                'instagram' => $request->input('instagram'),
+                'linkedin' => $request->input('linkedin'),
+                'photo_profile' => $request->input('photo_profile'),
+                'photo_name_ori' => $filePhoto,
+                'religion' => $request->input('religion'),
+                'email' => $request->input('email'),
+                'parent_phone_number' => $request->input('parent_phone_number'),
                 'status' => $request->input('status'),
             ]);
             GLog::AddLog('success input siswa', $request->all(), ""); 
@@ -110,8 +119,20 @@ class ManageSiswa extends Controller
     public function UpdateSiswa(Request $request, $idSiswa){
 
         try {
+            
+            if($request->status){
+                $request->merge(['status' => 'Active']); //assign baru, dari from true and false
+            }else{
+                $request->merge(['status' => 'Non-Active']);
+            }
+
             $request->merge(['id' => $idSiswa]);
             $validator = $this->validateSiswa($request, 'update');
+
+            $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);
+            $request->merge(['photo_name_ori' => $filePhoto]); //update name ori
+
+            return response()->json($request->all());
 
             if ($validator->fails()) {
                 throw new ValidationException($validator);
@@ -179,7 +200,7 @@ class ManageSiswa extends Controller
     public function GetSiswaByID($id){
 
         try {
-            $data = Siswa::find($id);
+            $data = Siswa::with('basekelas')->find($id);
 
             if (!$data) {
                 throw new \Exception('Siswa not found');
@@ -191,7 +212,6 @@ class ManageSiswa extends Controller
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }
-
     }
 
 
@@ -218,15 +238,68 @@ class ManageSiswa extends Controller
             ],
 
             'nama' => 'required|string|max:200',
+            'religion' => 'required|string|max:200',
             'gender' => 'required|string|max:200',
             'birth_date' => 'required|date',
             'birth_place' => 'required|string|max:1000',
             'address' => 'string|max:1000|nullable',
             'phone_number' => 'max:20|nullable',
+            'parent_phone_number' => 'max:20|nullable',
+            'email' => 'email|max:200',
+            'facebook' => 'string|max:400',
+            'instagram' => 'string|max:400',
+            'linkedin' => 'string|max:400',
+            'religion' => 'required|string|max:200',
+            'photo_profile' => ['string', 
+            
+                function ($attribute,$value, $fail) use ($request, $action) {
+                    if (!is_string($value)) {
+                        return $fail('The photo must be a string.');
+                    }
+
+                    $base64Data = explode('base64,', $value);
+                    if (count($base64Data) != 2) {
+                        return $fail('The photo must be a valid base64 string.');
+                    }
+
+                    $decodedData = base64_decode($base64Data[1], true);
+
+                    if ($decodedData === false) {
+                        return $fail('Failed to decode base64.');
+                    }
+
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mimeType = finfo_buffer($finfo, $decodedData);
+                    finfo_close($finfo);
+                    if (!in_array($mimeType, ['image/png', 'image/jpeg', 'image/jpg'])) {
+                        return $fail('Photo profile harus PNG, JPEG, or JPG image.');
+                    }
+                }
+            
+            ],
             'status' => 'string|max:10|in:Active,Non-Active',
         ]);
      
         return $validator;
+    }
+
+    public function base64ToImage($base64String, $nis)
+    {
+        $image = explode('base64,',$base64String);
+        $image = end($image);
+        $image = str_replace(' ', '+', $image);
+
+        $matches = [];
+        preg_match('/^data:image\/(\w+);base64/', $base64String, $matches);
+        if (count($matches) > 1) {
+            $extension = $matches[1]; // Dapatkan ekstensi file
+        } else {
+            $extension = 'png';  //default
+        }
+        $file = "/siswa/profile/".$nis."/" . uniqid() .".$extension";
+        Storage::disk('public')->put($file,base64_decode($image));
+        
+        return $file;
     }
 
     //delete cache 

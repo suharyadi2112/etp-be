@@ -30,6 +30,16 @@ class Siswa extends Model
         'address',
         'phone_number',
         'status',
+        
+        'facebook',
+        'instagram',
+        'linkedin',
+        'photo_profile',
+        'photo_name_ori',
+        'religion',
+        'email',
+        'parent_phone_number',
+
         'created_at',
         'updated_at',
         'deleted_at',
