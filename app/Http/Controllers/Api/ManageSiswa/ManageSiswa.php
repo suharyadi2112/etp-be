@@ -198,14 +198,27 @@ class ManageSiswa extends Controller
     public function GetSiswaByID($id){
 
         try {
-            $data = Siswa::with('basekelas')->find($id);
 
-            if (!$data) {
-                throw new \Exception('Siswa not found');
+            $cacheKey = 'search_siswa:' . md5($id);
+            $getSiswa = false;
+            if ($this->useCache) {
+                $getSiswa = json_decode(Redis::get($cacheKey), false);
+            }
+
+            if (!$getSiswa || !$this->useCache) {
+                $getSiswa = Siswa::with('basekelas')->find($id);
+
+                if (!$getSiswa) {
+                    throw new \Exception('Siswa not found');
+                }
+
+                if ($this->useCache) {//set ke redis
+                    Redis::setex($cacheKey, $this->useExp, json_encode($getSiswa));
+                } 
             }
 
             GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
-            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $data], 200);
+            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $getSiswa], 200);
         } catch (\Exception $e) {
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
@@ -272,6 +285,14 @@ class ManageSiswa extends Controller
                     if (!in_array($mimeType, ['image/png', 'image/jpeg', 'image/jpg'])) {
                         return $fail('Photo profile harus PNG, JPEG, or JPG image.');
                     }
+
+                    // Check image size (3MB)
+                    $maxSizeInBytes = 3 * 1024 * 1024; // 3MB in bytes
+                    $fileSizeInBytes = strlen($decodedData);
+                    if ($fileSizeInBytes > $maxSizeInBytes) {
+                        return $fail('Ukuran foto profil harus kurang dari 3MB.');
+                    }
+
                 }
             
             ],
