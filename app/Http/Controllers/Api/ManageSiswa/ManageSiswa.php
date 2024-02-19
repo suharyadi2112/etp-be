@@ -64,8 +64,6 @@ class ManageSiswa extends Controller
 
     public function StoreSiswa(Request $request){
 
-        $filePhoto = $this->base64ToImage($request->photo_profile);//get ori photo dari base64
-
         DB::beginTransaction();
         if($request->status){
             $request->merge(['status' => 'Active']); //assign baru, dari from true and false
@@ -74,6 +72,7 @@ class ManageSiswa extends Controller
         }
      
         $validator = $this->validateSiswa($request, 'insert');  
+        $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);//get ori photo dari base64
 
         if ($validator->fails()) {
             GLog::AddLog('fails input siswa', $validator->errors(), "alert"); 
@@ -129,6 +128,11 @@ class ManageSiswa extends Controller
 
             $request->merge(['id' => $idSiswa]);
             $validator = $this->validateSiswa($request, 'update');
+
+            $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);
+            $request->merge(['photo_name_ori' => $filePhoto]); //update name ori
+
+            return response()->json($request->all());
 
             if ($validator->fails()) {
                 throw new ValidationException($validator);
@@ -208,7 +212,6 @@ class ManageSiswa extends Controller
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }
-
     }
 
 
@@ -280,7 +283,7 @@ class ManageSiswa extends Controller
         return $validator;
     }
 
-    public function base64ToImage($base64String)
+    public function base64ToImage($base64String, $nis)
     {
         $image = explode('base64,',$base64String);
         $image = end($image);
@@ -293,7 +296,7 @@ class ManageSiswa extends Controller
         } else {
             $extension = 'png';  //default
         }
-        $file = "/siswa/profile/" . uniqid() .".$extension";
+        $file = "/siswa/profile/".$nis."/" . uniqid() .".$extension";
         Storage::disk('public')->put($file,base64_decode($image));
         
         return $file;
