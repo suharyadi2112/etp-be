@@ -202,22 +202,27 @@ class ManageSiswa extends Controller
             $cacheKey = 'search_siswa:' . md5($id);
             $getSiswa = false;
             if ($this->useCache) {
-                $getSiswa = json_decode(Redis::get($cacheKey), false);
+                $getSiswa = json_decode(Redis::get($cacheKey), false); //cache tidak ada photo base64
+                if ($getSiswa) {
+                    $onlyPhoto = Siswa::find($id)->pluck('photo_profile')->first();
+                    if ($onlyPhoto !== null) {
+                        $getSiswa->photo_profile = $onlyPhoto;
+                    } else {
+                        $getSiswa->photo_profile = null;
+                    }
+                }
             }
 
             if (!$getSiswa || !$this->useCache) {
                 $getSiswa = Siswa::with('basekelas')->find($id);
-
                 if (!$getSiswa) {
                     throw new \Exception('Siswa not found');
                 }
-
                 if ($this->useCache) {//set ke redis
                     Redis::setex($cacheKey, $this->useExp, json_encode($getSiswa));  //except photoprofile base64
                 } 
+                $getSiswa->makeVisible('photo_profile'); //munculkan photo profile
             }
-
-            $getSiswa->makeVisible('photo_profile'); //munculkan kembali photo profile
 
             GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
             return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $getSiswa], 200);
