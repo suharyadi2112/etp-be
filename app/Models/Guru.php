@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Ramsey\Uuid\Uuid;
 
-class Siswa extends Model
+class Guru extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'a_siswa'; // Nama tabel sesuai dengan skema
+    protected $table = 'a_guru'; // Nama tabel sesuai dengan skema
 
     protected $primaryKey = 'id'; // Kolom primary key
 
@@ -23,8 +23,8 @@ class Siswa extends Model
 
     protected $fillable = [
         'id',
-        'id_kelas',
-        'nis',
+        'nip',
+        'nuptk',
         'nama',
         'gender',
         'birth_date',
@@ -48,11 +48,6 @@ class Siswa extends Model
         
     ];
 
-    public function basekelas()
-    {
-        return $this->belongsTo(BaseKelas::class, 'id_kelas');
-    }
-
     public function getPhotoProfileAttribute($value)
     {
         return $this->attributes['photo_profile'];
@@ -70,7 +65,8 @@ class Siswa extends Model
     public function scopeSearch($query, $search)
     {
         if ($search) {
-            return $query->where('nis', 'LIKE', "%$search%")
+            return $query->where('nip', 'LIKE', "%$search%")
+                         ->orWhere('nuptk', 'LIKE', "%$search%")
                          ->orWhere('nama', 'LIKE', "%$search%")
                          ->orWhere('phone_number', 'LIKE', "%$search%")
                          ->orWhere('gender', 'LIKE', "%$search%");

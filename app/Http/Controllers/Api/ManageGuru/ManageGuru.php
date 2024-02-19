@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Api\ManageSiswa;
+namespace App\Http\Controllers\Api\ManageGuru;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Model;
 
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
@@ -12,9 +13,10 @@ use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
 use App\Helpers\Helper as GLog;
 //model
-use App\Models\Siswa;
+use App\Models\Guru;
 
-class ManageSiswa extends Controller
+
+class ManageGuru extends Controller
 {
     private $useCache;
     private $useExp;
@@ -25,36 +27,35 @@ class ManageSiswa extends Controller
         $this->useExp = env('USE_EXPIRED', 3600); //setup redis
     }
 
-    public function GetSiswa(Request $request){
-        
+    public function GetGuru(Request $request){
+
         $perPage = $request->input('per_page', 5);
         $search = $request->input('search');
         $page = $request->input('page', 1);
 
         try {
-            $cacheKey = 'search_siswa:' . md5($search . $perPage . $page);
-            $getSiswa = false;
+            $cacheKey = 'search_guru:' . md5($search . $perPage . $page);
+            $getGuru = false;
 
             if ($this->useCache) {
-                $getSiswa = json_decode(Redis::get($cacheKey), false);
+                $getGuru = json_decode(Redis::get($cacheKey), false);
             }
 
-            if (!$getSiswa || !$this->useCache) {
-                $queryy = Siswa::query();
-                $query = $queryy->with('basekelas'); 
+            if (!$getGuru || !$this->useCache) {
+                $query = Guru::query();
                 if ($search) {
                     $query->search($search);// jika ada pencarian
                 }
                 $query->orderBy('created_at', 'desc');
-                $getSiswa = $query->paginate($perPage);
+                $getGuru = $query->paginate($perPage);
 
                 if ($this->useCache) {//set ke redis
-                    Redis::setex($cacheKey, $this->useExp, json_encode($getSiswa));
+                    Redis::setex($cacheKey, $this->useExp, json_encode($getGuru));
                 } 
             }
 
             GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
-            return response(["status"=> "success","message"=> "Data successfully retrieved", "data" => $getSiswa], 200);
+            return response(["status"=> "success","message"=> "Data successfully retrieved", "data" => $getGuru], 200);
 
         } catch (\Exception $e) {
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
@@ -62,7 +63,7 @@ class ManageSiswa extends Controller
         }
     }
 
-    public function StoreSiswa(Request $request){
+    public function StoreGuru(Request $request){
 
         DB::beginTransaction();
         if($request->status){
@@ -71,18 +72,18 @@ class ManageSiswa extends Controller
             $request->merge(['status' => 'Non-Active']);
         }
      
-        $validator = $this->validateSiswa($request, 'insert');  
-        $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);//get ori photo dari base64
+        $validator = $this->validateGuru($request, 'insert');  
+        $filePhoto = $this->base64ToImage($request->photo_profile, $request->nip);//get ori photo dari base64
 
         if ($validator->fails()) {
-            GLog::AddLog('fails input siswa', $validator->errors(), "alert"); 
+            GLog::AddLog('fails input guru', $validator->errors(), "alert"); 
             return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
         }
         
         try {
-            Siswa::create([
-                'id_kelas' => $request->input('id_kelas'),
-                'nis' => $request->input('nis'),
+            Guru::create([
+                'nip' => $request->input('nip'),
+                'nuptk' => $request->input('nuptk'),
                 'nama' => strtolower($request->input('nama')),
                 'gender' => strtolower($request->input('gender')),
                 'birth_date' => $request->input('birth_date'),
@@ -99,142 +100,156 @@ class ManageSiswa extends Controller
                 'parent_phone_number' => $request->input('parent_phone_number'),
                 'status' => $request->input('status'),
             ]);
-            GLog::AddLog('success input siswa', $request->all(), ""); 
+            GLog::AddLog('success input guru', $request->all(), ""); 
         
             DB::commit();
             if ($this->useCache) {
-                $this->deleteSearchSiswa('search_siswa:*');
+                $this->deleteSearchGuru('search_guru:*');
             }
             return response()->json(["status"=> "success","message"=> "Data successfully stored", "data" => $request->all()], 200);
 
         } catch (\Exception $e) {
             
             DB::rollBack();
-            GLog::AddLog('fails input siswa to db', $e->getMessage(), "error"); 
+            GLog::AddLog('fails input guru to db', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }
     }
 
-
-    public function UpdateSiswa(Request $request, $idSiswa){
+    public function UpdateGuru(Request $request, $idGuru){
 
         try {
-            
             if($request->status){
                 $request->merge(['status' => 'Active']); //assign baru, dari from true and false
             }else{
                 $request->merge(['status' => 'Non-Active']);
             }
 
-            $request->merge(['id' => $idSiswa]);
-            $validator = $this->validateSiswa($request, 'update');
+            $request->merge(['id' => $idGuru]);
+            $validator = $this->validateGuru($request, 'update');
 
-            $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);
+            $filePhoto = $this->base64ToImage($request->photo_profile, $request->nip);
             $request->merge(['photo_name_ori' => $filePhoto]); //update name ori
 
             if ($validator->fails()) {
                 throw new ValidationException($validator);
             }
            
-            DB::transaction(function () use ($request, $idSiswa) {
-                $Siswa = Siswa::find($idSiswa);
+            DB::transaction(function () use ($request, $idGuru) {
+                $Guru = Guru::find($idGuru);
 
-                if (!$Siswa) {
-                    throw new \Exception('Siswa not found');
+                if (!$Guru) {
+                    throw new \Exception('Guru not found');
                 }
-                $Siswa->fill($request->all());
-                $Siswa->save();
+                $Guru->fill($request->all());
+                $Guru->save();
 
                 if ($this->useCache) {
-                    $this->deleteSearchSiswa('search_siswa:*');
+                    $this->deleteSearchGuru('search_Guru:*');
                 }
 
-                GLog::AddLog('success updated siswa', $request->all(), ""); 
+                GLog::AddLog('success updated guru', $request->all(), ""); 
             });
 
-            return response()->json(['status' => 'success', 'message' => 'siswa updated successfully', 'data' => $request->all()], 200);
+            return response()->json(['status' => 'success', 'message' => 'guru updated successfully', 'data' => $request->all()], 200);
 
         } catch (ValidationException $e) {
-            GLog::AddLog('fails update siswa validation', $e->errors(), 'alert');
+            GLog::AddLog('fails update guru validation', $e->errors(), 'alert');
             return response()->json(['status' => 'fail', 'message' => $e->errors(), 'data' => null], 400);
         } catch (\Exception $e) {
-            GLog::AddLog('fails update siswa', $e->getMessage(), 'alert');
+            GLog::AddLog('fails update guru', $e->getMessage(), 'alert');
             return response()->json(['status' => 'fail', 'message' => $e->getMessage(), 'data' => null], 500);
         }
     }
 
-    public function DelSiswa($id){
+    public function DelGuru($id){
         
         try {
-            $siswaName = null;
-            DB::transaction(function () use ($id, &$siswaName) {
-                $siswaData = Siswa::find($id);
+            $guruName = null;
+            DB::transaction(function () use ($id, &$guruName) {
+                $guruData = Guru::find($id);
 
-                if (!$siswaData) {
-                    throw new \Exception('siswa not found');
+                if (!$guruData) {
+                    throw new \Exception('guru not found');
                 }
 
-                $siswaName = $siswaData->nama;
-                $siswaData->delete();//SoftDelete
+                $guruName = $guruData->nama;
+                $guruData->delete();//SoftDelete
 
                 if ($this->useCache) {
-                    $this->deleteSearchSiswa('search_siswa:*');
+                    $this->deleteSearchGuru('search_guru:*');
                 }
 
-                GLog::AddLog('success delete siswa', $siswaData->nama, ""); 
+                GLog::AddLog('success delete guru', $guruData->nama, ""); 
             });
 
-            return response()->json(['status' => 'success', 'message' => 'siswa delete successfully', 'data' => $siswaName], 200);
+            return response()->json(['status' => 'success', 'message' => 'guru delete successfully', 'data' => $guruName], 200);
     
         } catch (ValidationException $e) {
-            GLog::AddLog('fails delete siswa validation', $e->errors(), 'alert');
+            GLog::AddLog('fails delete guru validation', $e->errors(), 'alert');
             return response()->json(['status' => 'fail', 'message' => $e->errors(), 'data' => null], 400);
         } catch (\Exception $e) {
-            GLog::AddLog('fails delete siswa', $e->getMessage(), 'alert');
+            GLog::AddLog('fails delete guru', $e->getMessage(), 'alert');
             return response()->json(['status' => 'fail', 'message' => $e->getMessage(), 'data' => null], 500);
         }
     }
 
-    public function GetSiswaByID($id){
+    public function GetGuruByID($id){
 
         try {
-
-            $cacheKey = 'search_siswa:' . md5($id);
-            $getSiswa = false;
+            $cacheKey = 'search_guru:' . md5($id);
+            $getGuru = false;
             if ($this->useCache) {
-                $getSiswa = json_decode(Redis::get($cacheKey), false);
+                $getGuru = json_decode(Redis::get($cacheKey), false);
             }
 
-            if (!$getSiswa || !$this->useCache) {
-                $getSiswa = Siswa::with('basekelas')->find($id);
+            if (!$getGuru || !$this->useCache) {
+                $query = Guru::find($id);
 
-                if (!$getSiswa) {
-                    throw new \Exception('Siswa not found');
+                if (!$query) {
+                    throw new \Exception('Guru not found');
                 }
 
                 if ($this->useCache) {//set ke redis
-                    Redis::setex($cacheKey, $this->useExp, json_encode($getSiswa));
+                    Redis::setex($cacheKey, $this->useExp, json_encode($query));
                 } 
             }
-
             GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
-            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $getSiswa], 200);
+            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $query], 200);
         } catch (\Exception $e) {
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }
     }
 
+    private function base64ToImage($base64String, $nip)
+    {
+        $image = explode('base64,',$base64String);
+        $image = end($image);
+        $image = str_replace(' ', '+', $image);
+
+        $matches = [];
+        preg_match('/^data:image\/(\w+);base64/', $base64String, $matches);
+        if (count($matches) > 1) {
+            $extension = $matches[1]; // Dapatkan ekstensi file
+        } else {
+            $extension = 'png';  //default
+        }
+        $file = "/guru/profile/".$nip."/" . uniqid() .".$extension";
+        Storage::disk('public')->put($file,base64_decode($image));
+        
+        return $file;
+    }
+
 
     //-----------
-    private function validateSiswa(Request $request, $action = 'insert')// insert is default
+    private function validateGuru(Request $request, $action = 'insert')// insert is default
     {   
         $validator = Validator::make($request->all(), [
-            'id_kelas' => 'required|exists:a_base_kelas,id',
-            'nis' => ['required', 'max:200',
+            'nip' => ['required', 'max:200',
 
                 function ($attribute,$value, $fail) use ($request, $action) {
-                    $query = Siswa::withTrashed()->where('nis', $value)->where('deleted_at' , null);
+                    $query = Guru::withTrashed()->where('nip', $value)->where('deleted_at' , null);
 
                     if ($action === 'update') {
                         $query->where('id', '!=', $request->id);
@@ -243,7 +258,24 @@ class ManageSiswa extends Controller
                     $existingData = $query->count();
 
                     if ($existingData > 0) {
-                        $fail('Nis already been taken.');
+                        $fail('Nip already been taken.');
+                    }
+                },
+            ],
+
+            'nuptk' => ['max:200',
+
+                function ($attribute,$value, $fail) use ($request, $action) {
+                    $query = Guru::withTrashed()->where('nip', $value)->where('deleted_at' , null);
+
+                    if ($action === 'update') {
+                        $query->where('id', '!=', $request->id);
+                    }
+                    
+                    $existingData = $query->count();
+
+                    if ($existingData > 0) {
+                        $fail('Nip already been taken.');
                     }
                 },
             ],
@@ -285,7 +317,7 @@ class ManageSiswa extends Controller
                     if (!in_array($mimeType, ['image/png', 'image/jpeg', 'image/jpg'])) {
                         return $fail('Photo profile harus PNG, JPEG, or JPG image.');
                     }
-
+                    
                     // Check image size (3MB)
                     $maxSizeInBytes = 3 * 1024 * 1024; // 3MB in bytes
                     $fileSizeInBytes = strlen($decodedData);
@@ -302,27 +334,9 @@ class ManageSiswa extends Controller
         return $validator;
     }
 
-    public function base64ToImage($base64String, $nis)
-    {
-        $image = explode('base64,',$base64String);
-        $image = end($image);
-        $image = str_replace(' ', '+', $image);
-
-        $matches = [];
-        preg_match('/^data:image\/(\w+);base64/', $base64String, $matches);
-        if (count($matches) > 1) {
-            $extension = $matches[1]; // Dapatkan ekstensi file
-        } else {
-            $extension = 'png';  //default
-        }
-        $file = "/siswa/profile/".$nis."/" . uniqid() .".$extension";
-        Storage::disk('public')->put($file,base64_decode($image));
-        
-        return $file;
-    }
 
     //delete cache 
-    protected function deleteSearchSiswa($pattern)
+    protected function deleteSearchGuru($pattern)
     {
         $keys = Redis::keys($pattern);
         foreach ($keys as $key) {
