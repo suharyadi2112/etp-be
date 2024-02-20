@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\ManageSiswa;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use GuzzleHttp\Client;
 
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
@@ -11,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
 use App\Helpers\Helper as GLog;
+use App\Jobs\UploadToDropbox as UpDrop;
+use Dcblogdev\Dropbox\Facades\Dropbox;
 //model
 use App\Models\Siswa;
 
@@ -70,9 +74,11 @@ class ManageSiswa extends Controller
         }else{
             $request->merge(['status' => 'Non-Active']);
         }
-     
+
         $validator = $this->validateSiswa($request, 'insert');  
         $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);//get ori photo dari base64
+
+        return $filePhoto;
 
         if ($validator->fails()) {
             GLog::AddLog('fails input siswa', $validator->errors(), "alert"); 
@@ -311,21 +317,35 @@ class ManageSiswa extends Controller
 
     public function base64ToImage($base64String, $nis)
     {
-        $image = explode('base64,',$base64String);
-        $image = end($image);
-        $image = str_replace(' ', '+', $image);
 
-        $matches = [];
-        preg_match('/^data:image\/(\w+);base64/', $base64String, $matches);
-        if (count($matches) > 1) {
-            $extension = $matches[1]; // Dapatkan ekstensi file
-        } else {
-            $extension = 'png';  //default
-        }
-        $file = "/siswa/profile/".$nis."/" . uniqid() .".$extension";
-        Storage::disk('public')->put($file,base64_decode($image));
+        try {
+            
+            $image = explode('base64,',$base64String);
+            $image = end($image);
+            $image = str_replace(' ', '+', $image);
+
+            $matches = [];
+            preg_match('/^data:image\/(\w+);base64/', $base64String, $matches);
+            if (count($matches) > 1) {
+                $extension = $matches[1]; // Dapatkan ekstensi file
+            } else {
+                $extension = 'png';  //default
+            }
+            $file = "/siswa/profile/".$nis."/" . uniqid() .".$extension";
+            Storage::disk('public')->put($file,base64_decode($image));
         
-        return $file;
+            dispatch(new UpDrop($file));//job upload ke dropbox
+            
+            // Storage::delete($file); //file temporary bisa di hapus setelah digunakan
+
+            return $file;
+    
+        } catch (\Exception $e) {
+            // Tangani pengecualian di sini
+            GLog::AddLog('Error occurred while processing base64 to image: ', $e->getMessage(), "error"); 
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
+
     }
 
     //delete cache 
