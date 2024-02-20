@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\ManageSiswa;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use GuzzleHttp\Client;
 
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
@@ -11,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
 use App\Helpers\Helper as GLog;
+use App\Jobs\UploadToDropbox as UpDrop;
+use Dcblogdev\Dropbox\Facades\Dropbox;
 //model
 use App\Models\Siswa;
 
@@ -70,14 +74,15 @@ class ManageSiswa extends Controller
         }else{
             $request->merge(['status' => 'Non-Active']);
         }
-     
+
         $validator = $this->validateSiswa($request, 'insert');  
-        $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);//get ori photo dari base64
 
         if ($validator->fails()) {
             GLog::AddLog('fails input siswa', $validator->errors(), "alert"); 
             return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
         }
+        
+        $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);//get ori photo dari base64
         
         try {
             Siswa::create([
@@ -92,7 +97,6 @@ class ManageSiswa extends Controller
                 'facebook' => $request->input('facebook'),
                 'instagram' => $request->input('instagram'),
                 'linkedin' => $request->input('linkedin'),
-                'photo_profile' => $request->input('photo_profile'),
                 'photo_name_ori' => $filePhoto,
                 'religion' => $request->input('religion'),
                 'email' => $request->input('email'),
@@ -202,18 +206,16 @@ class ManageSiswa extends Controller
             $cacheKey = 'search_siswa:' . md5($id);
             $getSiswa = false;
             if ($this->useCache) {
-                $getSiswa = json_decode(Redis::get($cacheKey), false);
+                $getSiswa = json_decode(Redis::get($cacheKey), false); //cache tidak ada photo base64
             }
 
             if (!$getSiswa || !$this->useCache) {
                 $getSiswa = Siswa::with('basekelas')->find($id);
-
                 if (!$getSiswa) {
                     throw new \Exception('Siswa not found');
                 }
-
                 if ($this->useCache) {//set ke redis
-                    Redis::setex($cacheKey, $this->useExp, json_encode($getSiswa));
+                    Redis::setex($cacheKey, $this->useExp, json_encode($getSiswa));  //except photoprofile base64
                 } 
             }
 
@@ -304,21 +306,34 @@ class ManageSiswa extends Controller
 
     public function base64ToImage($base64String, $nis)
     {
-        $image = explode('base64,',$base64String);
-        $image = end($image);
-        $image = str_replace(' ', '+', $image);
+        try {
+            
+            $image = explode('base64,',$base64String);
+            $image = end($image);
+            $image = str_replace(' ', '+', $image);
 
-        $matches = [];
-        preg_match('/^data:image\/(\w+);base64/', $base64String, $matches);
-        if (count($matches) > 1) {
-            $extension = $matches[1]; // Dapatkan ekstensi file
-        } else {
-            $extension = 'png';  //default
-        }
-        $file = "/siswa/profile/".$nis."/" . uniqid() .".$extension";
-        Storage::disk('public')->put($file,base64_decode($image));
+            $matches = [];
+            preg_match('/^data:image\/(\w+);base64/', $base64String, $matches);
+            if (count($matches) > 1) {
+                $extension = $matches[1]; // Dapatkan ekstensi file
+            } else {
+                $extension = 'png';  //default
+            }
+            $file = "/siswa/profile/".$nis."/" . uniqid() .".$extension";
+            Storage::disk('public')->put($file,base64_decode($image));
         
-        return $file;
+            dispatch(new UpDrop($file));//job upload ke dropbox
+            
+            // Storage::delete($file); //file temporary bisa di hapus setelah digunakan
+
+            return $file;
+    
+        } catch (\Exception $e) {
+            // Tangani pengecualian di sini
+            GLog::AddLog('Error occurred while processing base64 to image: ', $e->getMessage(), "error"); 
+            return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
+
     }
 
     //delete cache 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\ManageGuru;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent\Model;
 
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
@@ -141,7 +140,7 @@ class ManageGuru extends Controller
                 if (!$Guru) {
                     throw new \Exception('Guru not found');
                 }
-                $Guru->fill($request->all());
+                $Guru->fill(array_map('strtolower',$request->all()));
                 $Guru->save();
 
                 if ($this->useCache) {
@@ -150,7 +149,7 @@ class ManageGuru extends Controller
 
                 GLog::AddLog('success updated guru', $request->all(), ""); 
             });
-
+            
             return response()->json(['status' => 'success', 'message' => 'guru updated successfully', 'data' => $request->all()], 200);
 
         } catch (ValidationException $e) {
@@ -195,27 +194,37 @@ class ManageGuru extends Controller
     }
 
     public function GetGuruByID($id){
-
+        
         try {
             $cacheKey = 'search_guru:' . md5($id);
             $getGuru = false;
             if ($this->useCache) {
                 $getGuru = json_decode(Redis::get($cacheKey), false);
+                if ($getGuru) {
+                    $onlyPhoto = Guru::find($id)->pluck('photo_profile')->first();
+                    if ($onlyPhoto !== null) {
+                        $getGuru->photo_profile = $onlyPhoto;
+                    } else {
+                        $getGuru->photo_profile = null;
+                    }
+                }
             }
 
             if (!$getGuru || !$this->useCache) {
-                $query = Guru::find($id);
+                $getGuru = Guru::find($id);
 
-                if (!$query) {
+                if (!$getGuru) {
                     throw new \Exception('Guru not found');
                 }
 
                 if ($this->useCache) {//set ke redis
-                    Redis::setex($cacheKey, $this->useExp, json_encode($query));
+                    Redis::setex($cacheKey, $this->useExp, json_encode($getGuru)); //except photoprofile base64
                 } 
+                $getGuru->makeVisible('photo_profile'); //munculkan photo profile
             }
+            
             GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
-            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $query], 200);
+            return response()->json(["status"=> "success","message"=> "Data successfully retrieved", "data" => $getGuru], 200);
         } catch (\Exception $e) {
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
@@ -266,7 +275,7 @@ class ManageGuru extends Controller
             'nuptk' => ['max:200',
 
                 function ($attribute,$value, $fail) use ($request, $action) {
-                    $query = Guru::withTrashed()->where('nip', $value)->where('deleted_at' , null);
+                    $query = Guru::withTrashed()->where('nuptk', $value)->where('deleted_at' , null);
 
                     if ($action === 'update') {
                         $query->where('id', '!=', $request->id);
@@ -275,7 +284,7 @@ class ManageGuru extends Controller
                     $existingData = $query->count();
 
                     if ($existingData > 0) {
-                        $fail('Nip already been taken.');
+                        $fail('Nuptk already been taken.');
                     }
                 },
             ],
