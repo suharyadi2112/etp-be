@@ -40,7 +40,7 @@ class UploadToDropbox implements ShouldQueue
         try {
             $client = new Client();
             $accessToken = env('DROPBOX_ACCESS_TOKEN');
-            $contents = Storage::disk('public')->get($this->fie);
+            $contents = Storage::disk('public')->get($this->file);
 
             // Konfigurasi request
             $options = [
