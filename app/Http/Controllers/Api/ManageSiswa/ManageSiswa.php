@@ -76,14 +76,13 @@ class ManageSiswa extends Controller
         }
 
         $validator = $this->validateSiswa($request, 'insert');  
-        $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);//get ori photo dari base64
-
-        return $filePhoto;
 
         if ($validator->fails()) {
             GLog::AddLog('fails input siswa', $validator->errors(), "alert"); 
             return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
         }
+        
+        $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);//get ori photo dari base64
         
         try {
             Siswa::create([
@@ -98,7 +97,6 @@ class ManageSiswa extends Controller
                 'facebook' => $request->input('facebook'),
                 'instagram' => $request->input('instagram'),
                 'linkedin' => $request->input('linkedin'),
-                'photo_profile' => $request->input('photo_profile'),
                 'photo_name_ori' => $filePhoto,
                 'religion' => $request->input('religion'),
                 'email' => $request->input('email'),
@@ -209,14 +207,6 @@ class ManageSiswa extends Controller
             $getSiswa = false;
             if ($this->useCache) {
                 $getSiswa = json_decode(Redis::get($cacheKey), false); //cache tidak ada photo base64
-                if ($getSiswa) {
-                    $onlyPhoto = Siswa::find($id)->pluck('photo_profile')->first();
-                    if ($onlyPhoto !== null) {
-                        $getSiswa->photo_profile = $onlyPhoto;
-                    } else {
-                        $getSiswa->photo_profile = null;
-                    }
-                }
             }
 
             if (!$getSiswa || !$this->useCache) {
@@ -227,7 +217,6 @@ class ManageSiswa extends Controller
                 if ($this->useCache) {//set ke redis
                     Redis::setex($cacheKey, $this->useExp, json_encode($getSiswa));  //except photoprofile base64
                 } 
-                $getSiswa->makeVisible('photo_profile'); //munculkan photo profile
             }
 
             GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
@@ -317,7 +306,6 @@ class ManageSiswa extends Controller
 
     public function base64ToImage($base64String, $nis)
     {
-
         try {
             
             $image = explode('base64,',$base64String);

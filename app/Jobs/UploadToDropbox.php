@@ -10,6 +10,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Storage;
+use App\Helpers\Helper as GLog;
 
 class UploadToDropbox implements ShouldQueue
 {
@@ -36,25 +37,30 @@ class UploadToDropbox implements ShouldQueue
      */
     public function handle()
     {
-        $client = new Client();
-        $accessToken = env('DROPBOX_ACCESS_TOKEN');
-        $contents = Storage::disk('public')->get($this->file);
-        // Konfigurasi request
-        $options = [
-            'headers' => [
-                'Authorization' => 'Bearer '. $accessToken,
-                'Dropbox-API-Arg' => json_encode([
-                    'autorename' => false,
-                    'mode' => 'add',
-                    'mute' => false,
-                    'path' => $this->file,
-                    'strict_conflict' => false
-                ]),
-                'Content-Type' => 'application/octet-stream',
-            ],
-            'body' => $this->contents, // membuka file dalam mode baca biner
-        ];
-        $client->post('https://content.dropboxapi.com/2/files/upload', $options);
+        try {
+            $client = new Client();
+            $accessToken = env('DROPBOX_ACCESS_TOKEN');
+            $contents = Storage::disk('public')->get($this->fie);
 
+            // Konfigurasi request
+            $options = [
+                'headers' => [
+                    'Authorization' => 'Bearer '. $accessToken,
+                    'Dropbox-API-Arg' => json_encode([
+                        'autorename' => false,
+                        'mode' => 'add',
+                        'mute' => false,
+                        'path' => $this->file,
+                        'strict_conflict' => false
+                    ]),
+                    'Content-Type' => 'application/octet-stream',
+                ],
+                'body' => $contents, // membuka file dalam mode baca biner
+            ];
+            $client->post('https://content.dropboxapi.com/2/files/upload', $options);
+
+        } catch (\Exception $e) {
+            GLog::AddLog('fails send file siswa to dropbox', $e->getMessage(), "error"); 
+        }
     }
 }
