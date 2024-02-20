@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Http;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Storage;
 use App\Helpers\Helper as GLog;
@@ -18,6 +19,8 @@ class UploadToDropbox implements ShouldQueue
 
     protected $file;
     protected $contents;
+    protected $accessToken;
+    protected $refreshToken;
 
     /**
      * Create a new job instance.
@@ -28,6 +31,8 @@ class UploadToDropbox implements ShouldQueue
     public function __construct($file)
     {
         $this->file = $file;
+        $this->refreshToken = env('DROPBOX_REFRESH_TOKEN');
+        $this->accessToken = env('DROPBOX_ACCESS_TOKEN');
     }
 
     /**
@@ -39,13 +44,12 @@ class UploadToDropbox implements ShouldQueue
     {
         try {
             $client = new Client();
-            $accessToken = env('DROPBOX_ACCESS_TOKEN');
             $contents = Storage::disk('public')->get($this->file);
 
             // Konfigurasi request
             $options = [
                 'headers' => [
-                    'Authorization' => 'Bearer '. $accessToken,
+                    'Authorization' => 'Bearer '. $this->accessToken,
                     'Dropbox-API-Arg' => json_encode([
                         'autorename' => false,
                         'mode' => 'add',
@@ -62,5 +66,33 @@ class UploadToDropbox implements ShouldQueue
         } catch (\Exception $e) {
             GLog::AddLog('fails send file siswa to dropbox', $e->getMessage(), "error"); 
         }
+    }
+
+    public function makeRequest($method, $url, $data = [])
+    {
+        if ($this->isTokenExpired()) { 
+            $this->refreshToken();
+        }
+    }
+
+    protected function isTokenExpired()
+    {
+        return false;
+    }
+
+    protected function refreshToken()
+    {
+        // Gunakan HTTP Client Laravel untuk melakukan permintaan ke Dropbox
+        $response = Http::post('https://api.dropbox.com/oauth2/token', [
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $this->refreshToken,
+            'client_id' => env('DROPBOX_CLIENT_ID'),
+            'client_secret' => env('DROPBOX_CLIENT_SECRET'),
+        ]);
+
+        // Ambil respons dan simpan token baru
+        $responseData = $response->json();
+        $this->accessToken = $responseData['access_token'];
+
     }
 }
