@@ -14,12 +14,12 @@ use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
 use App\Helpers\Helper as GLog;
 use App\Jobs\UploadToDropbox as UpDrop;
-use Dcblogdev\Dropbox\Facades\Dropbox;
 //model
 use App\Models\Siswa;
 
 class ManageSiswa extends Controller
 {
+
     private $useCache;
     private $useExp;
 
@@ -321,8 +321,14 @@ class ManageSiswa extends Controller
             }
             $file = "/siswa/profile/".$nis."/" . uniqid() .".$extension";
             Storage::disk('public')->put($file,base64_decode($image));
-        
-            dispatch(new UpDrop($file));//job upload ke dropbox
+            
+            /**********************JOB UPLOAD TO CLOUD STORAGE ***************/
+            /*/
+            /*/
+            dispatch(new UpDrop($file, $nis));
+            /*/
+            /*/
+            /**********************JOB UPLOAD TO CLOUD STORAGE ***************/
             
             // Storage::delete($file); //file temporary bisa di hapus setelah digunakan
 

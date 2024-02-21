@@ -8,16 +8,28 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+
+use GuzzleHttp\Client;
+use GuzzleHttp\RequestOptions;
+
 use App\Helpers\Helper as GLog;
+//model
+use App\Models\Siswa;
 
 class UploadToDropbox implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $file;
+    protected $nis;
     protected $contents;
+    protected $accessToken;
+    protected $refreshToken;
+    protected $clientid;
+    protected $secretid;
 
     /**
      * Create a new job instance.
@@ -25,9 +37,14 @@ class UploadToDropbox implements ShouldQueue
      * @param  string  $file
      * @return void
      */
-    public function __construct($file)
+    public function __construct($file, $nis)
     {
         $this->file = $file;
+        $this->nis = $nis;
+        $this->refreshToken = env('DROPBOX_REFRESH_TOKEN');
+        $this->accessToken = env('DROPBOX_ACCESS_TOKEN');
+        $this->clientid = env('DROPBOX_CLIENT_ID');
+        $this->secretid = env('DROPBOX_SECRET_ID');
     }
 
     /**
@@ -38,14 +55,17 @@ class UploadToDropbox implements ShouldQueue
     public function handle()
     {
         try {
+            
             $client = new Client();
-            $accessToken = env('DROPBOX_ACCESS_TOKEN');
             $contents = Storage::disk('public')->get($this->file);
+            // $token = Dropbox::getAccessToken();
+
+            $this->refreshToken(); //refresh token
 
             // Konfigurasi request
             $options = [
                 'headers' => [
-                    'Authorization' => 'Bearer '. $accessToken,
+                    'Authorization' => 'Bearer '. $this->accessToken,
                     'Dropbox-API-Arg' => json_encode([
                         'autorename' => false,
                         'mode' => 'add',
@@ -57,10 +77,49 @@ class UploadToDropbox implements ShouldQueue
                 ],
                 'body' => $contents, // membuka file dalam mode baca biner
             ];
-            $client->post('https://content.dropboxapi.com/2/files/upload', $options);
+            $response = $client->post('https://content.dropboxapi.com/2/files/upload', $options);
+            
+            // Mengambil konten respons sebagai string
+            $responseBody = $response->getBody()->getContents();
+            $responseData = json_decode($responseBody, true);
+
+            $upSiswa = Siswa::where('nis', $this->nis)->first();
+            $upSiswa->path_photo_cloud = $responseData["path_display"]; //update path cloud
+            $upSiswa->save();
+
+            // Menyimpan respons ke dalam log
+            Log::info($responseBody);
+
 
         } catch (\Exception $e) {
             GLog::AddLog('fails send file siswa to dropbox', $e->getMessage(), "error"); 
+        }
+    }
+
+
+    protected function refreshToken()
+    {
+        try {
+            
+            $client = new Client(['base_uri' => 'https://api.dropboxapi.com/oauth2/']);
+            $response = $client->post('token', [
+                RequestOptions::FORM_PARAMS => [
+                    'grant_type' => 'refresh_token',
+                    'refresh_token' => $this->refreshToken,
+                    'client_id' => $this->clientid,
+                    'client_secret' => $this->secretid,
+                ],
+            ]);
+
+            // Handle the response
+            $responseBody = $response->getBody()->getContents();
+            $responseData = json_decode($responseBody, true);
+
+            Log::info($responseData);
+            $this->accessToken = $responseData['access_token']; //assign new token
+
+        } catch (\Exception $e) {
+            GLog::AddLog('fails refresh token', $e->getMessage(), "error"); 
         }
     }
 }
