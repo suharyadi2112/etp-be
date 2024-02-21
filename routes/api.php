@@ -1,7 +1,5 @@
 <?php
 
-use Dcblogdev\Dropbox\Facades\Dropbox;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SanctumAuthController;
@@ -87,15 +85,4 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('get_guru/{id}', [ManageGuru::class, 'GetGuruByID']);
 
 
-});
-
-
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('dropbox/connect', function(){
-        return Dropbox::connect();
-    });
-
-    Route::get('dropbox/disconnect', function(){
-        return Dropbox::disconnect('app/dropbox');
-    });
 });
