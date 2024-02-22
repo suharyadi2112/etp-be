@@ -30,6 +30,8 @@ class UploadToDropbox implements ShouldQueue
     protected $refreshToken;
     protected $clientid;
     protected $secretid;
+    protected $urlDropBox;
+    protected $urlDropBoxVTwo;
 
     /**
      * Create a new job instance.
@@ -45,6 +47,8 @@ class UploadToDropbox implements ShouldQueue
         $this->accessToken = env('DROPBOX_ACCESS_TOKEN');
         $this->clientid = env('DROPBOX_CLIENT_ID');
         $this->secretid = env('DROPBOX_SECRET_ID');
+        $this->urlDropBox = env('DROPBOX_URL');
+        $this->urlDropBoxVTwo = env('DROPBOX_URL_V2');
     }
 
     /**
@@ -77,7 +81,7 @@ class UploadToDropbox implements ShouldQueue
                 ],
                 'body' => $contents, // membuka file dalam mode baca biner
             ];
-            $response = $client->post('https://content.dropboxapi.com/2/files/upload', $options);
+            $response = $client->post($this->urlDropBoxVTwo.'/2/files/upload', $options);
             
             // Mengambil konten respons sebagai string
             $responseBody = $response->getBody()->getContents();
@@ -101,7 +105,7 @@ class UploadToDropbox implements ShouldQueue
     {
         try {
             
-            $client = new Client(['base_uri' => 'https://api.dropboxapi.com/oauth2/']);
+            $client = new Client(['base_uri' => $this->urlDropBox.'/oauth2/token']);
             $response = $client->post('token', [
                 RequestOptions::FORM_PARAMS => [
                     'grant_type' => 'refresh_token',

@@ -35,6 +35,7 @@ class Siswa extends Model
         'instagram',
         'linkedin',
         'photo_name_ori',
+        'path_photo_cloud',
         'religion',
         'email',
         'parent_phone_number',

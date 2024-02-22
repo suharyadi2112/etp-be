@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\ManageBaseKelas\ManageBaseKelas;
 use App\Http\Controllers\Api\ManageSiswa\ManageSiswa;
 use App\Http\Controllers\Api\ManageGuru\ManageGuru;
 
+use App\Http\Controllers\Api\DropBoxTool\DropBoxTool;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -84,5 +86,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('del_guru/{id}', [ManageGuru::class, 'DelGuru']);
     Route::get('get_guru/{id}', [ManageGuru::class, 'GetGuruByID']);
 
-
+    
+    Route::post('temp_file', [DropBoxTool::class, 'GetTemporaryLink']);
 });
