@@ -1,7 +1,5 @@
 <?php
 
-use Dcblogdev\Dropbox\Facades\Dropbox;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SanctumAuthController;
@@ -13,6 +11,8 @@ use App\Http\Controllers\Api\ManageBaseMataPelajaran\ManageBaseMataPelajaran;
 use App\Http\Controllers\Api\ManageBaseKelas\ManageBaseKelas;
 use App\Http\Controllers\Api\ManageSiswa\ManageSiswa;
 use App\Http\Controllers\Api\ManageGuru\ManageGuru;
+
+use App\Http\Controllers\Api\DropBoxTool\DropBoxTool;
 
 /*
 |--------------------------------------------------------------------------
@@ -86,16 +86,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('del_guru/{id}', [ManageGuru::class, 'DelGuru']);
     Route::get('get_guru/{id}', [ManageGuru::class, 'GetGuruByID']);
 
-
-});
-
-
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('dropbox/connect', function(){
-        return Dropbox::connect();
-    });
-
-    Route::get('dropbox/disconnect', function(){
-        return Dropbox::disconnect('app/dropbox');
-    });
+    
+    Route::post('temp_file', [DropBoxTool::class, 'GetTemporaryLink']);
 });
