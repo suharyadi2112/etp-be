@@ -86,7 +86,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('del_guru/{id}', [ManageGuru::class, 'DelGuru']);
     Route::get('get_guru/{id}', [ManageGuru::class, 'GetGuruByID']);
 
-
     
-    Route::get('r_dropbox', [DropBoxTool::class, 'RefreshTokenDropbox']);
+    Route::post('temp_file', [DropBoxTool::class, 'GetTemporaryLink']);
 });
