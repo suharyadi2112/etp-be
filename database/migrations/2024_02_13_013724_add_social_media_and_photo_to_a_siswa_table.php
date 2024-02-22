@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('facebook')->nullable();
             $table->string('instagram')->nullable();
             $table->string('linkedin')->nullable();
-            $table->longText('photo_profile')->nullable();
             $table->text('photo_name_ori')->nullable();
             $table->string('religion')->nullable();
             $table->string('email')->nullable();
@@ -36,7 +35,6 @@ return new class extends Migration
             $table->dropColumn('facebook');
             $table->dropColumn('instagram');
             $table->dropColumn('linkedin');
-            $table->dropColumn('photo_profile');
             $table->dropColumn('photo_name_ori');
             $table->dropColumn('religion');
             $table->dropColumn('email');

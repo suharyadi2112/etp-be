@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Dcblogdev\Dropbox\Facades\Dropbox;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,4 +16,19 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
+});
+
+
+Route::group(['middleware' => ['web', 'DropboxAuthenticated']], function(){
+    Route::get('dropbox', function(){
+        return Dropbox::post('users/get_current_account');
+    });
+});
+
+Route::get('dropbox/connect', function(){
+    return Dropbox::connect();
+});
+
+Route::get('dropbox/disconnect', function(){
+    return Dropbox::disconnect('app/dropbox');
 });

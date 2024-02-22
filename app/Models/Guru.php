@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Ramsey\Uuid\Uuid;
 
-class Siswa extends Model
+class Guru extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'a_siswa'; // Nama tabel sesuai dengan skema
+    protected $table = 'a_guru'; // Nama tabel sesuai dengan skema
 
     protected $primaryKey = 'id'; // Kolom primary key
 
@@ -19,10 +19,12 @@ class Siswa extends Model
 
     protected $keyType = 'string'; // Jenis data primary key
 
+    protected $hidden = ['photo_profile']; // photo_profile di set hidden base64
+
     protected $fillable = [
         'id',
-        'id_kelas',
-        'nis',
+        'nip',
+        'nuptk',
         'nama',
         'gender',
         'birth_date',
@@ -34,8 +36,8 @@ class Siswa extends Model
         'facebook',
         'instagram',
         'linkedin',
+        'photo_profile',
         'photo_name_ori',
-        'path_photo_cloud',
         'religion',
         'email',
         'parent_phone_number',
@@ -46,9 +48,9 @@ class Siswa extends Model
         
     ];
 
-    public function basekelas()
+    public function getPhotoProfileAttribute($value)
     {
-        return $this->belongsTo(BaseKelas::class, 'id_kelas');
+        return $this->attributes['photo_profile'];
     }
 
     protected static function boot()
@@ -63,7 +65,8 @@ class Siswa extends Model
     public function scopeSearch($query, $search)
     {
         if ($search) {
-            return $query->where('nis', 'LIKE', "%$search%")
+            return $query->where('nip', 'LIKE', "%$search%")
+                         ->orWhere('nuptk', 'LIKE', "%$search%")
                          ->orWhere('nama', 'LIKE', "%$search%")
                          ->orWhere('phone_number', 'LIKE', "%$search%")
                          ->orWhere('gender', 'LIKE', "%$search%");

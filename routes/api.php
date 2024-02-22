@@ -10,6 +10,9 @@ use App\Http\Controllers\Api\ManageMataPelajaran\ManageMataPelajaran;
 use App\Http\Controllers\Api\ManageBaseMataPelajaran\ManageBaseMataPelajaran;
 use App\Http\Controllers\Api\ManageBaseKelas\ManageBaseKelas;
 use App\Http\Controllers\Api\ManageSiswa\ManageSiswa;
+use App\Http\Controllers\Api\ManageGuru\ManageGuru;
+
+use App\Http\Controllers\Api\DropBoxTool\DropBoxTool;
 
 /*
 |--------------------------------------------------------------------------
@@ -75,5 +78,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('update_siswa/{id}', [ManageSiswa::class, 'UpdateSiswa']);
     Route::delete('del_siswa/{id}', [ManageSiswa::class, 'DelSiswa']);
     Route::get('get_siswa/{id}', [ManageSiswa::class, 'GetSiswaByID']);
+    
+    //manage guru
+    Route::get('get_guru', [ManageGuru::class, 'GetGuru']);
+    Route::post('store_guru', [ManageGuru::class, 'StoreGuru']);
+    Route::put('update_guru/{id}', [ManageGuru::class, 'UpdateGuru']);
+    Route::delete('del_guru/{id}', [ManageGuru::class, 'DelGuru']);
+    Route::get('get_guru/{id}', [ManageGuru::class, 'GetGuruByID']);
 
+    
+    Route::post('temp_file', [DropBoxTool::class, 'GetTemporaryLink']);
 });
