@@ -94,7 +94,6 @@ class ManageGuru extends Controller
                 'facebook' => $request->input('facebook'),
                 'instagram' => $request->input('instagram'),
                 'linkedin' => $request->input('linkedin'),
-                'photo_profile' => $request->input('photo_profile'),
                 'photo_name_ori' => $filePhoto,
                 'religion' => $request->input('religion'),
                 'email' => $request->input('email'),
@@ -202,14 +201,6 @@ class ManageGuru extends Controller
             $getGuru = false;
             if ($this->useCache) {
                 $getGuru = json_decode(Redis::get($cacheKey), false);
-                if ($getGuru) {
-                    $onlyPhoto = Guru::find($id)->pluck('photo_profile')->first();
-                    if ($onlyPhoto !== null) {
-                        $getGuru->photo_profile = $onlyPhoto;
-                    } else {
-                        $getGuru->photo_profile = null;
-                    }
-                }
             }
 
             if (!$getGuru || !$this->useCache) {
@@ -222,7 +213,6 @@ class ManageGuru extends Controller
                 if ($this->useCache) {//set ke redis
                     Redis::setex($cacheKey, $this->useExp, json_encode($getGuru)); //except photoprofile base64
                 } 
-                $getGuru->makeVisible('photo_profile'); //munculkan photo profile
             }
             
             GLog::AddLog('Success retrieved data', 'Data successfully retrieved', "info"); 
@@ -250,14 +240,14 @@ class ManageGuru extends Controller
         Storage::disk('public')->put($file,base64_decode($image));
 
         /**********************JOB UPLOAD TO CLOUD STORAGE ***************/
-            /*/
-            /*/
-            dispatch(new UpDrop($file, $nip));
-            /*/
-            /*/
-            /**********************JOB UPLOAD TO CLOUD STORAGE ***************/
-            
-            // Storage::delete($file); //file temporary bisa di hapus setelah digunakan
+        /*/
+        /*/
+        dispatch(new UpDrop($file, $nip));
+        /*/
+        /*/
+        /**********************JOB UPLOAD TO CLOUD STORAGE ***************/
+        
+        // Storage::delete($file); //file temporary bisa di hapus setelah digunakan
         
         return $file;
     }
