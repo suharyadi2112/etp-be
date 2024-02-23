@@ -19,8 +19,6 @@ class Guru extends Model
 
     protected $keyType = 'string'; // Jenis data primary key
 
-    protected $hidden = ['photo_profile']; // photo_profile di set hidden base64
-
     protected $fillable = [
         'id',
         'nip',
@@ -36,7 +34,7 @@ class Guru extends Model
         'facebook',
         'instagram',
         'linkedin',
-        'photo_profile',
+        'path_photo_cloud',
         'photo_name_ori',
         'religion',
         'email',
@@ -47,11 +45,6 @@ class Guru extends Model
         'deleted_at',
         
     ];
-
-    public function getPhotoProfileAttribute($value)
-    {
-        return $this->attributes['photo_profile'];
-    }
 
     protected static function boot()
     {
