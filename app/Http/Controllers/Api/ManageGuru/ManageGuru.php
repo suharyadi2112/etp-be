@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
 use App\Helpers\Helper as GLog;
+use App\Jobs\UploadToDropboxGuru as UpDrop;
 //model
 use App\Models\Guru;
 
@@ -72,13 +73,14 @@ class ManageGuru extends Controller
         }
      
         $validator = $this->validateGuru($request, 'insert');  
-        $filePhoto = $this->base64ToImage($request->photo_profile, $request->nip);//get ori photo dari base64
-
+        
         if ($validator->fails()) {
             GLog::AddLog('fails input guru', $validator->errors(), "alert"); 
             return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
         }
         
+        $filePhoto = $this->base64ToImage($request->photo_profile, $request->nip);//get ori photo dari base64
+
         try {
             Guru::create([
                 'nip' => $request->input('nip'),
@@ -246,6 +248,16 @@ class ManageGuru extends Controller
         }
         $file = "/guru/profile/".$nip."/" . uniqid() .".$extension";
         Storage::disk('public')->put($file,base64_decode($image));
+
+        /**********************JOB UPLOAD TO CLOUD STORAGE ***************/
+            /*/
+            /*/
+            dispatch(new UpDrop($file, $nip));
+            /*/
+            /*/
+            /**********************JOB UPLOAD TO CLOUD STORAGE ***************/
+            
+            // Storage::delete($file); //file temporary bisa di hapus setelah digunakan
         
         return $file;
     }
