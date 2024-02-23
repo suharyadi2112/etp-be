@@ -19,8 +19,6 @@ class Siswa extends Model
 
     protected $keyType = 'string'; // Jenis data primary key
 
-    protected $hidden = ['photo_profile']; // photo_profile di set hidden base64
-
     protected $fillable = [
         'id',
         'id_kelas',
@@ -36,8 +34,8 @@ class Siswa extends Model
         'facebook',
         'instagram',
         'linkedin',
-        'photo_profile',
         'photo_name_ori',
+        'path_photo_cloud',
         'religion',
         'email',
         'parent_phone_number',
@@ -51,11 +49,6 @@ class Siswa extends Model
     public function basekelas()
     {
         return $this->belongsTo(BaseKelas::class, 'id_kelas');
-    }
-
-    public function getPhotoProfileAttribute($value)
-    {
-        return $this->attributes['photo_profile'];
     }
 
     protected static function boot()

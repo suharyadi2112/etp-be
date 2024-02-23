@@ -28,8 +28,8 @@ return new class extends Migration
             $table->string('facebook')->nullable();
             $table->string('instagram')->nullable();
             $table->string('linkedin')->nullable();
-            $table->longText('photo_profile')->nullable();
             $table->text('photo_name_ori')->nullable();
+            $table->text('path_photo_cloud')->nullable();
             $table->string('religion')->nullable();
             $table->string('email')->nullable();
             $table->string('parent_phone_number')->nullable();
