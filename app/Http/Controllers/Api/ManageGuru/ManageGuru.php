@@ -141,11 +141,14 @@ class ManageGuru extends Controller
                 if (!$Guru) {
                     throw new \Exception('Guru not found');
                 }
-                $Guru->fill(array_map('strtolower',$request->all()));
+
+                $Guru->fill($request->all(), function ($value, $key) { //set huruf kecil
+                    return ($key !== 'deleted_at') ? strtolower($value) : $value;
+                });
                 $Guru->save();
 
                 if ($this->useCache) {
-                    $this->deleteSearchGuru('search_Guru:*');
+                    $this->deleteSearchGuru('search_guru:*');
                 }
 
                 GLog::AddLog('success updated guru', $request->all(), ""); 
