@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Ramsey\Uuid\Uuid;
 
-class Siswa extends Model
+class OrangTua extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'a_siswa'; // Nama tabel sesuai dengan skema
+    protected $table = 'a_parents'; // Nama tabel sesuai dengan skema
 
     protected $primaryKey = 'id'; // Kolom primary key
 
@@ -21,24 +21,17 @@ class Siswa extends Model
 
     protected $fillable = [
         'id',
-        'id_kelas',
-        'nis',
-        'nama',
-        'gender',
-        'birth_date',
-        'birth_place',
+        'id_siswa',
+        'name',
         'address',
         'phone_number',
-        'status',
-        
-        'facebook',
-        'instagram',
-        'linkedin',
-        'photo_name_ori',
-        'path_photo_cloud',
-        'religion',
         'email',
-        'parent_phone_number',
+        'relationship',
+        'date_of_birth',
+        'place_of_birth',
+        'occupation',
+        'emergency_contact',
+        'additional_notes',
 
         'created_at',
         'updated_at',
@@ -46,14 +39,9 @@ class Siswa extends Model
         
     ];
 
-    public function basekelas()
+    public function siswa()
     {
-        return $this->belongsTo(BaseKelas::class, 'id_kelas');
-    }
-
-    public function parent()
-    {
-        return $this->belongsTo(Parent::class, 'id', 'id_siswa');
+        return $this->hasMany(Siswa::class, 'id_siswa');
     }
 
     protected static function boot()
@@ -68,10 +56,7 @@ class Siswa extends Model
     public function scopeSearch($query, $search)
     {
         if ($search) {
-            return $query->where('nis', 'LIKE', "%$search%")
-                         ->orWhere('nama', 'LIKE', "%$search%")
-                         ->orWhere('phone_number', 'LIKE', "%$search%")
-                         ->orWhere('gender', 'LIKE', "%$search%");
+            return $query->where('name', 'LIKE', "%$search%");
         }
 
         return $query;
