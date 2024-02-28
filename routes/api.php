@@ -89,6 +89,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     //manage parant(orang tua/wali)
     Route::get('get_orangtua', [ManageParent::class, 'GetOrangTua']);
+    Route::post('store_orangtua', [ManageParent::class, 'StoreOrangtua']);
+    Route::get('get_orangtua/{id}', [ManageParent::class, 'GetOrtuByID']);
+    Route::delete('del_orangtua/{id}', [ManageParent::class, 'DelOrtu']);
     
 
     

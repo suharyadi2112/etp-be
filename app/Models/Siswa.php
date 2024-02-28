@@ -51,9 +51,9 @@ class Siswa extends Model
         return $this->belongsTo(BaseKelas::class, 'id_kelas');
     }
 
-    public function parent()
+    public function orangtua()
     {
-        return $this->belongsTo(Parent::class, 'id', 'id_siswa');
+        return $this->belongsToMany(OrangTua::class, 'a_pivot_siswa_orang_tua', 'siswa_id', 'orang_tua_id');
     }
 
     protected static function boot()

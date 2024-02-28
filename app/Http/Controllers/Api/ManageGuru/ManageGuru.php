@@ -215,7 +215,7 @@ class ManageGuru extends Controller
                 }
 
                 if ($this->useCache) {//set ke redis
-                    Redis::setex($cacheKey, $this->useExp, json_encode($getGuru)); //except photoprofile base64
+                    Redis::setex($cacheKey, $this->useExp, json_encode($getGuru)); 
                 } 
             }
             

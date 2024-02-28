@@ -30,7 +30,6 @@ class OrangTua extends Model
         'date_of_birth',
         'place_of_birth',
         'occupation',
-        'emergency_contact',
         'additional_notes',
 
         'created_at',
@@ -39,9 +38,14 @@ class OrangTua extends Model
         
     ];
 
+    // public function siswa()
+    // {
+    //     return $this->belongsTo(Siswa::class, 'id_siswa');
+    // }
+
     public function siswa()
     {
-        return $this->hasMany(Siswa::class, 'id_siswa');
+        return $this->belongsToMany(Siswa::class, 'a_pivot_siswa_orang_tua', 'orang_tua_id', 'siswa_id');
     }
 
     protected static function boot()
