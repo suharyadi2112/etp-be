@@ -15,8 +15,8 @@ return new class extends Migration
     {
         Schema::create('a_guru', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('nip')->unique()->comment('Nomor Unik Pegawai');
-            $table->string('nuptk')->unique()->nullable()->comment('Nomor Unik Pendidik dan Tenaga Kependidikan');
+            $table->string('nip')->comment('Nomor Unik Pegawai');
+            $table->string('nuptk')->nullable()->comment('Nomor Unik Pendidik dan Tenaga Kependidikan');
             $table->string('nama')->notNullable();
             $table->enum('gender', ['Laki-laki', 'Perempuan'])->notNullable();
             $table->date('birth_date')->notNullable();

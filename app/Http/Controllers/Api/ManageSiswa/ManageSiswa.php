@@ -132,15 +132,16 @@ class ManageSiswa extends Controller
 
             $request->merge(['id' => $idSiswa]);
             $validator = $this->validateSiswa($request, 'update');
-
-            $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);
-            $request->merge(['photo_name_ori' => $filePhoto]); //update name ori
-
+            
             if ($validator->fails()) {
                 throw new ValidationException($validator);
             }
            
             DB::transaction(function () use ($request, $idSiswa) {
+    
+                $filePhoto = $this->base64ToImage($request->photo_profile, $request->nis);
+                $request->merge(['photo_name_ori' => $filePhoto]); //update name ori
+
                 $Siswa = Siswa::find($idSiswa);
 
                 if (!$Siswa) {
