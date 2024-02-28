@@ -128,14 +128,15 @@ class ManageGuru extends Controller
             $request->merge(['id' => $idGuru]);
             $validator = $this->validateGuru($request, 'update');
 
-            $filePhoto = $this->base64ToImage($request->photo_profile, $request->nip);
-            $request->merge(['photo_name_ori' => $filePhoto]); //update name ori
-
             if ($validator->fails()) {
                 throw new ValidationException($validator);
             }
            
             DB::transaction(function () use ($request, $idGuru) {
+
+                $filePhoto = $this->base64ToImage($request->photo_profile, $request->nip);
+                $request->merge(['photo_name_ori' => $filePhoto]); //update name ori
+
                 $Guru = Guru::find($idGuru);
 
                 if (!$Guru) {
@@ -214,7 +215,7 @@ class ManageGuru extends Controller
                 }
 
                 if ($this->useCache) {//set ke redis
-                    Redis::setex($cacheKey, $this->useExp, json_encode($getGuru)); //except photoprofile base64
+                    Redis::setex($cacheKey, $this->useExp, json_encode($getGuru)); 
                 } 
             }
             

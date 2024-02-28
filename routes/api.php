@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\ManageSiswa\ManageSiswa;
 use App\Http\Controllers\Api\ManageGuru\ManageGuru;
 
 use App\Http\Controllers\Api\DropBoxTool\DropBoxTool;
+use App\Http\Controllers\Api\ManageParent\ManageParent;
 
 /*
 |--------------------------------------------------------------------------
@@ -85,6 +86,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('update_guru/{id}', [ManageGuru::class, 'UpdateGuru']);
     Route::delete('del_guru/{id}', [ManageGuru::class, 'DelGuru']);
     Route::get('get_guru/{id}', [ManageGuru::class, 'GetGuruByID']);
+
+    //manage parant(orang tua/wali)
+    Route::get('get_orangtua', [ManageParent::class, 'GetOrangTua']);
+    Route::post('store_orangtua', [ManageParent::class, 'StoreOrangtua']);
+    Route::get('get_orangtua/{id}', [ManageParent::class, 'GetOrtuByID']);
+    Route::delete('del_orangtua/{id}', [ManageParent::class, 'DelOrtu']);
+    
 
     
     Route::post('temp_file', [DropBoxTool::class, 'GetTemporaryLink']);
