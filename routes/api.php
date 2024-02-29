@@ -92,6 +92,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('store_orangtua', [ManageParent::class, 'StoreOrangtua']);
     Route::get('get_orangtua/{id}', [ManageParent::class, 'GetOrtuByID']);
     Route::delete('del_orangtua/{id}', [ManageParent::class, 'DelOrtu']);
+    Route::put('up_orangtua/{id}', [ManageParent::class, 'UpOrtu']);
     
 
     

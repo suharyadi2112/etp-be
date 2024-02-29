@@ -9,9 +9,11 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Carbon;
 use App\Helpers\Helper as GLog;
 //model
 use App\Models\OrangTua;
+use App\Models\Siswa;
 
 class ManageParent extends Controller
 {
@@ -66,7 +68,6 @@ class ManageParent extends Controller
     }
 
     public function StoreOrangtua(Request $request){
-
         DB::beginTransaction();
         $validator = $this->validateOrtu($request, 'insert');  
         
@@ -75,7 +76,7 @@ class ManageParent extends Controller
             return response()->json(["status"=> "fail", "message"=>  $validator->errors(),"data" => null], 400);
         }
         try {
-            OrangTua::create([
+            $ortu =  OrangTua::create([
                 'name' => strtolower($request->input('name')),
                 'address' => $request->input('address'),
                 'phone_number' => $request->input('phone_number'),
@@ -85,9 +86,14 @@ class ManageParent extends Controller
                 'occupation' => $request->input('occupation'),
                 'additional_notes' => $request->input('additional_notes'),
             ]);
+            $hubungan = $request->input('relationship'); //hubungan
+
+            $siswa = Siswa::find($request->input('id_siswa')); //temukan siswa
+            // Tambahkan hubungan antara orang tua dan siswa melalui tabel pivot
+            $ortu->siswa()->attach($siswa, ['hubungan' => $hubungan, 'created_at' => Carbon::now()]);
             GLog::AddLog('success input orang tua', $request->all(), ""); 
-        
             DB::commit();
+
             if ($this->useCache) {
                 $this->deleteSearchOrtu('search_orangtua:*');
             }
@@ -98,6 +104,54 @@ class ManageParent extends Controller
             DB::rollBack();
             GLog::AddLog('fails input orang tua to db', $e->getMessage(), "error"); 
             return response()->json(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
+    }
+
+    public function UpOrtu(Request $request, $id){
+        try {
+         
+            $request->merge(['id' => $id]);
+            $validator = $this->validateOrtu($request, 'update');
+            
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+           
+            DB::transaction(function () use ($request, $id) {
+                $orgTua = OrangTua::find($id);
+
+                if (!$orgTua) {
+                    throw new \Exception('orang tua not found');
+                }
+                $orgTua->fill($request->all());
+                $orgTua->save();
+
+                // pivot
+                $idSiswaBaru = $request->input('id_siswa_baru');
+                // Periksa apakah siswa baru sudah terhubung
+                if ($orgTua->siswa()->where('a_siswa.id', $idSiswaBaru)->exists()) {
+                    // Perbarui hubungan yang ada
+                    $orgTua->siswa()->updateExistingPivot($idSiswaBaru, ['hubungan' => $request->relationship,  'updated_at' => Carbon::now()]);
+                } else {
+                    // Hubungkan siswa baru (jika diperlukan)
+                    $orgTua->siswa()->attach($idSiswaBaru, ['hubungan' => $request->relationship, 'created_at' => Carbon::now()]);
+                }
+                
+                if ($this->useCache) {
+                    $this->deleteSearchOrtu('search_orangtua:*');
+                }
+
+                GLog::AddLog('success updated orang tua', $request->all(), ""); 
+            });
+
+            return response()->json(['status' => 'success', 'message' => 'orang tua updated successfully', 'data' => $request->all()], 200);
+
+        } catch (ValidationException $e) {
+            GLog::AddLog('fails update orang tua validation', $e->errors(), 'alert');
+            return response()->json(['status' => 'fail', 'message' => $e->errors(), 'data' => null], 400);
+        } catch (\Exception $e) {
+            GLog::AddLog('fails update orang tua', $e->getMessage(), 'alert');
+            return response()->json(['status' => 'fail', 'message' => $e->getMessage(), 'data' => null], 500);
         }
     }
 
@@ -169,11 +223,13 @@ class ManageParent extends Controller
     private function validateOrtu(Request $request, $action = 'insert')// insert is default
     {   
         $validator = Validator::make($request->all(), [
+            'id_siswa_baru' => 'required|string|max:100',
             'name' => 'required|string|max:500',
             'date_of_birth' => 'required|date',
             'place_of_birth' => 'required|string|max:1000',
             'address' => 'string|max:1000|nullable',
             'phone_number' => 'required|max:20',
+            'relationship' => 'required|max:50|string',
             'email' => 'email|max:200',
             'occupation' => 'max:500',
             'additional_notes' => 'string|max:1000',
