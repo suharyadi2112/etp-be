@@ -21,12 +21,10 @@ class OrangTua extends Model
 
     protected $fillable = [
         'id',
-        'id_siswa',
         'name',
         'address',
         'phone_number',
         'email',
-        'relationship',
         'date_of_birth',
         'place_of_birth',
         'occupation',
