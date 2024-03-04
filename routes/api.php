@@ -79,6 +79,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('update_siswa/{id}', [ManageSiswa::class, 'UpdateSiswa']);
     Route::delete('del_siswa/{id}', [ManageSiswa::class, 'DelSiswa']);
     Route::get('get_siswa/{id}', [ManageSiswa::class, 'GetSiswaByID']);
+    Route::get('get_list_siswa', [ManageSiswa::class, 'GetListSiswa']);
     
     //manage guru
     Route::get('get_guru', [ManageGuru::class, 'GetGuru']);
@@ -93,7 +94,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('get_orangtua/{id}', [ManageParent::class, 'GetOrtuByID']);
     Route::delete('del_orangtua/{id}', [ManageParent::class, 'DelOrtu']);
     Route::put('up_orangtua/{id}', [ManageParent::class, 'UpOrtu']);
-    
+    Route::get('get_list_ortu', [ManageParent::class, 'GetListOrtu']);
 
     
     Route::post('temp_file', [DropBoxTool::class, 'GetTemporaryLink']);

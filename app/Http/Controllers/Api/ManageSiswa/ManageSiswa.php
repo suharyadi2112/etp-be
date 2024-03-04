@@ -29,11 +29,43 @@ class ManageSiswa extends Controller
         $this->useExp = env('USE_EXPIRED', 3600); //setup redis
     }
 
+    public function GetListSiswa(Request $request){
+
+        $tipeList = "tipelist";
+        try {
+            $cacheKey = 'search_siswa:' . md5($tipeList);
+            $getSiswa = false;
+
+            if ($this->useCache) {
+                $getSiswa = json_decode(Redis::get($cacheKey), false);
+            }
+
+            if (!$getSiswa || !$this->useCache) {
+                // $query = Siswa::query()->with('basekelas')->orderBy('created_at', 'desc')->select('nama', 'id');
+                // $getSiswa = $query->get();
+                $queryy = Siswa::query();
+                $getSiswa = $queryy->with('basekelas')->orderBy('created_at', 'desc')->select('a_siswa.nama', 'a_siswa.id')->get(); 
+              
+                if ($this->useCache) {//set ke redis
+                    Redis::setex($cacheKey, $this->useExp, json_encode($getSiswa));
+                } 
+            }
+
+            GLog::AddLog('Success retrieved data', 'Data list siswa successfully retrieved', "info"); 
+            return response(["status"=> "success","message"=> "Data list siswa successfully retrieved", "data" => $getSiswa], 200);
+
+        } catch (\Exception $e) {
+            GLog::AddLog('fails retrieved data list siswa', $e->getMessage(), "error"); 
+            return response(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
+
+    }
+
     public function GetSiswa(Request $request){
         
-        $perPage = $request->input('per_page', 5);
+        $perPage = $request->input('per_page');
         $search = $request->input('search');
-        $page = $request->input('page', 1);
+        $page = $request->input('page');
 
         try {
             $cacheKey = 'search_siswa:' . md5($search . $perPage . $page);

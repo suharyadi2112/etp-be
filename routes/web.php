@@ -17,6 +17,9 @@ use Dcblogdev\Dropbox\Facades\Dropbox;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('login', function () {
+    return response()->json('request failed');
+})->name('login');
 
 
 Route::group(['middleware' => ['web', 'DropboxAuthenticated']], function(){

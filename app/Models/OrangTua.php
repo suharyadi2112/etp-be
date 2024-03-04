@@ -36,11 +36,6 @@ class OrangTua extends Model
         
     ];
 
-    // public function siswa()
-    // {
-    //     return $this->belongsTo(Siswa::class, 'id_siswa');
-    // }
-
     public function siswa()
     {
         return $this->belongsToMany(Siswa::class, 'a_pivot_siswa_orang_tua', 'orang_tua_id', 'siswa_id');
@@ -58,9 +53,11 @@ class OrangTua extends Model
     public function scopeSearch($query, $search)
     {
         if ($search) {
-            return $query->where('name', 'LIKE', "%$search%");
+            return $query->where('name', 'LIKE', "%$search%")
+                         ->orWhereHas('siswa', function ($query) use ($search) {
+                             $query->where('nama', 'LIKE', "%$search%");
+                         });
         }
-
         return $query;
     }
 }

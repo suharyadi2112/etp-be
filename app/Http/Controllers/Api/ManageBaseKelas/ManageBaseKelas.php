@@ -26,9 +26,9 @@ class ManageBaseKelas extends Controller
 
     public function GetBaseKelas(Request $request){
         
-        $perPage = $request->input('per_page', 5);
+        $perPage = $request->input('per_page');
         $search = $request->input('search');
-        $page = $request->input('page', 1);
+        $page = $request->input('page');
 
         try {
             $cacheKey = 'search_basekelas:' . md5($search . $perPage . $page);

@@ -14,6 +14,7 @@ use App\Helpers\Helper as GLog;
 //model
 use App\Models\OrangTua;
 use App\Models\Siswa;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Rels;
 
 class ManageParent extends Controller
 {
@@ -28,9 +29,9 @@ class ManageParent extends Controller
 
     public function GetOrangTua(Request $request){
         
-        $perPage = $request->input('per_page', 5);
+        $perPage = $request->input('per_page');
         $search = $request->input('search');
-        $page = $request->input('page', 1);
+        $page = $request->input('page');
 
         try {
             $cacheKey = 'search_orangtua:' . md5($search . $perPage . $page);
@@ -44,11 +45,10 @@ class ManageParent extends Controller
 
                 $query = OrangTua::query()->with(['siswa' => function ($query) {
                     $query->select('a_siswa.id', 'a_siswa.nama');
+                    $query->withPivot('hubungan');
                 }]);
                 if ($search) {
-                    $query->whereHas('siswa', function ($query) use ($search) {
-                        $query->where('nama', 'like', "%$search%");
-                    });
+                    $query->search($search);
                 }
                 $query->orderBy('created_at', 'desc');
                 $getParent = $query->paginate($perPage);
@@ -65,6 +65,36 @@ class ManageParent extends Controller
             GLog::AddLog('fails retrieved data', $e->getMessage(), "error"); 
             return response(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
         }
+    }
+
+    public function GetListOrtu(){
+
+        $tipeList = "tipelist";
+        try {
+            $cacheKey = 'search_ortu:' . md5($tipeList);
+            $getOrtu = false;
+
+            if ($this->useCache) {
+                $getOrtu = json_decode(Redis::get($cacheKey), false);
+            }
+
+            if (!$getOrtu || !$this->useCache) {
+                $queryy = OrangTua::query();
+                $getOrtu = $queryy->orderBy('created_at', 'desc')->select("id","name")->get(); 
+                
+                if ($this->useCache) {//set ke redis
+                    Redis::setex($cacheKey, $this->useExp, json_encode($getOrtu));
+                } 
+            }
+
+            GLog::AddLog('Success retrieved data', 'Data list orang tua successfully retrieved', "info"); 
+            return response(["status"=> "success","message"=> "Data list orang tua successfully retrieved", "data" => $getOrtu], 200);
+
+        } catch (\Exception $e) {
+            GLog::AddLog('fails retrieved data list orang tua', $e->getMessage(), "error"); 
+            return response(["status"=> "fail","message"=> $e->getMessage(),"data" => null], 500);
+        }
+
     }
 
     public function StoreOrangtua(Request $request){
@@ -127,7 +157,7 @@ class ManageParent extends Controller
                 $orgTua->save();
 
                 // pivot
-                $idSiswaBaru = $request->input('id_siswa_baru');
+                $idSiswaBaru = $request->input('id_siswa');
                 // Periksa apakah siswa baru sudah terhubung
                 if ($orgTua->siswa()->where('a_siswa.id', $idSiswaBaru)->exists()) {
                     // Perbarui hubungan yang ada
@@ -223,11 +253,11 @@ class ManageParent extends Controller
     private function validateOrtu(Request $request, $action = 'insert')// insert is default
     {   
         $validator = Validator::make($request->all(), [
-            'id_siswa_baru' => 'required|string|max:100',
+            'id_siswa' => 'required|string|max:100',
             'name' => 'required|string|max:500',
             'date_of_birth' => 'required|date',
-            'place_of_birth' => 'required|string|max:1000',
-            'address' => 'string|max:1000|nullable',
+            'place_of_birth' => 'string|max:1000',
+            'address' => 'required|string|max:1000|nullable',
             'phone_number' => 'required|max:20',
             'relationship' => 'required|max:50|string',
             'email' => 'email|max:200',
